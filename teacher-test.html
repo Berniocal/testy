@@ -174,10 +174,12 @@
     </div>
     <button id="btn-preview" disabled>Náhled otázek</button>
     <button id="btn-start-local" disabled>Spustit test jen zde (náhled)</button>
-    <button id="btn-generate-link" disabled>Vygenerovat odkaz pro žáky</button>
-    <div id="teacher-info" class="muted" style="margin-top:8px;"></div>
-    <div id="link-output" class="muted" style="margin-top:8px;"></div>
-    <div id="preview" style="margin-top:10px;"></div>
+<button id="btn-generate-link" disabled>Vygenerovat odkaz pro žáky</button>
+<div id="teacher-info" class="muted" style="margin-top:8px;"></div>
+<div id="link-output" class="muted" style="margin-top:8px;"></div>
+<div id="qr-container" style="margin-top:8px;"></div>
+<div id="preview" style="margin-top:10px;"></div>
+
   </div>
 
   <!-- Panel žáka – náhled / lokální běh -->
@@ -402,31 +404,53 @@
   });
 
   // --- 5) Generování odkazu pro žáky ---
-  btnGenLink.addEventListener('click', ()=>{
-    const cfg = buildTestConfig();
-    if(!cfg) return;
+btnGenLink.addEventListener('click', ()=>{
+  if(!loadedQuestions.length){
+    alert("Nejdřív nahraj Excel.");
+    return;
+  }
 
- const payload = {
-  testId: cfg.testId,
-  questions: cfg.questions,
-  timeMode: cfg.timeMode,
-  timeLimitSec: cfg.timeLimitSec,
-  startAt: cfg.startAt,
-  endAt: cfg.endAt
-};
+  const shuffleQuestionsFlag = document.getElementById('shuffle-questions').checked;
+  const shuffleAnswersFlag   = document.getElementById('shuffle-answers').checked;
+  const modeLimit  = document.getElementById('mode-limit').checked;
+  const modeWindow = document.getElementById('mode-window').checked;
+  const timeLimitMin = parseInt(document.getElementById('time-limit').value,10) || 0;
+  const startAtStr = document.getElementById('start-at').value;
+  const endAtStr   = document.getElementById('end-at').value;
+  const testIdInput = document.getElementById('test-id');
+  const testId = testIdInput && testIdInput.value.trim()
+    ? testIdInput.value.trim()
+    : "TEST-" + Date.now();
 
-// KÓDOVÁNÍ BEZ btoa – funguje i s diakritikou
-const encoded = encodeURIComponent(JSON.stringify(payload));
+  const payload = {
+    testId,
+    // POZOR: sem jdou NEZAMÍCHANÉ otázky – shuffle udělá až žák
+    questions: loadedQuestions,
+    shuffleQuestions: shuffleQuestionsFlag,
+    shuffleAnswers:   shuffleAnswersFlag,
+    timeMode: modeLimit ? "limit" : (modeWindow ? "window" : null),
+    timeLimitSec: modeLimit && timeLimitMin>0 ? timeLimitMin*60 : null,
+    startAt: modeWindow && startAtStr ? new Date(startAtStr).toISOString() : null,
+    endAt:   modeWindow && endAtStr   ? new Date(endAtStr).toISOString()   : null
+  };
 
-const studentUrl = `student-test.html#${encoded}`;
+  // žádné btoa – ať funguje diakritika
+  const encoded = encodeURIComponent(JSON.stringify(payload));
+  const studentUrl = `student-test.html#${encoded}`;
 
+  linkOutput.innerHTML = `
+    <strong>Odkaz pro žáky:</strong><br>
+    <a href="${studentUrl}" target="_blank">${studentUrl}</a>
+  `;
 
-    linkOutput.innerHTML = `
-      <strong>Odkaz pro žáky:</strong><br>
-      Pošli jim prosím <code>${studentUrl}</code><br>
-      (nebo tenhle klikací odkaz: <a href="${studentUrl}" target="_blank">${studentUrl}</a>)
-    `;
-  });
+  const qrDiv = document.getElementById('qr-container');
+  qrDiv.innerHTML = `
+    <div class="muted" style="margin-top:6px;">QR kód pro žáky:</div>
+    <img src="https://chart.googleapis.com/chart?cht=qr&chs=240x240&chl=${encodeURIComponent(studentUrl)}"
+         alt="QR kód testu">
+  `;
+});
+
 
   // --- 6) Studentská logika (náhled – stejná jako na žákovské stránce) ---
 
