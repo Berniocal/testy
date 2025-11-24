@@ -666,29 +666,32 @@ const API_URL = "https://script.google.com/macros/s/AKfycby_nyIz2pYtHD3h00eOW9cx
     }
   });
 
-  // --- 8) Odesílání na Apps Script ---
-  function sendEvent(eventType, payload){
-    if(!API_URL || API_URL.indexOf("SEM_VLOŽ") !== -1) {
-      console.warn("API_URL není nastaveno, data se neposílají.");
-      return;
-    }
-    const body = Object.assign({}, payload, {
-      eventType: eventType,
-      testId: testConfig ? testConfig.testId : "",
-      studentName: testState.studentName || ""
-    });
-    try{
-      fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify(body)
-      }).catch(err=>{
-        console.error("Chyba při odesílání na server:", err);
-      });
-    }catch(e){
-      console.error(e);
-    }
+function sendEvent(eventType, payload){
+  if(!API_URL) {
+    console.warn("API_URL není nastaveno, data se neposílají.");
+    return;
   }
+
+  const body = Object.assign({}, payload, {
+    eventType: eventType,
+    testId: testConfig ? testConfig.testId : "",
+    studentName: testState.studentName || ""
+  });
+
+  try {
+    // fire-and-forget, CORS se nebude řešit
+    fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify(body)
+    }).catch(err => {
+      console.error("Chyba při odesílání na server:", err);
+    });
+  } catch (e) {
+    console.error(e);
+  }
+}
+
 
   // --- Pomocné funkce ---
   function shuffle(arr){
