@@ -1,1 +1,541 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Online test – žák</title>
+  <meta name="theme-color" content="#0b1323">
+  <style>
+    :root{
+      --bg:#0b1323; --bg2:#0f1722; --panel:#101826;
+      --text:#e6eef8; --muted:#9fb0c7; --accent:#60a5fa;
+      --ok:#22c55e; --warn:#f97316; --err:#ef4444;
+      --r:14px; --gap:12px;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      margin:0; padding:0;
+      min-height:100%;
+      background:linear-gradient(180deg,var(--bg),var(--bg2));
+      color:var(--text);
+      font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    }
+    .wrap{max-width:min(1100px,96vw);margin:20px auto;padding:10px}
+    h1,h2,h3{margin:0 0 10px}
+    .panel{
+      background:var(--panel);
+      border-radius:var(--r);
+      padding:16px;
+      box-shadow:0 14px 40px rgba(0,0,0,.4);
+      margin-bottom:16px;
+    }
+    label{display:block;margin:6px 0;}
+    input[type="text"]{
+      width:100%;
+      max-width:260px;
+      padding:6px 8px;
+      border-radius:8px;
+      border:1px solid #1f2937;
+      background:#0b1220;
+      color:var(--text);
+    }
+    button{
+      border:0;
+      padding:8px 14px;
+      border-radius:999px;
+      background:var(--accent);
+      color:#0b1020;
+      font-weight:600;
+      cursor:pointer;
+      margin:4px 4px 0 0;
+    }
+    button[disabled]{opacity:.55;cursor:not-allowed}
+    .btn-secondary{
+      background:#020617;color:var(--text);
+      border:1px solid #1f2937;
+    }
+    .muted{color:var(--muted);font-size:.9rem}
+    .badge{
+      display:inline-flex;align-items:center;justify-content:center;
+      min-width:26px;height:26px;
+      padding:0 8px;
+      border-radius:999px;
+      font-size:.9rem;
+      border:1px solid #1f2937;
+      background:#020617;
+      margin:2px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .badge.answered{background:#022c22;border-color:#16a34a;color:#bbf7d0}
+    .badge.current{outline:2px solid var(--accent);}
+    .badge:hover{background:#02091a}
+    .q-text{font-size:1.05rem;margin-bottom:8px}
+    .answers label{
+      display:flex;align-items:flex-start;
+      gap:8px;
+      padding:6px 8px;
+      border-radius:10px;
+      background:#020617;
+      margin-bottom:4px;
+      cursor:pointer;
+    }
+    .answers input{margin-top:3px}
+    .topbar{
+      display:flex;justify-content:space-between;align-items:center;
+      margin-bottom:8px;
+      flex-wrap:wrap;gap:8px;
+    }
+    .timer{
+      padding:4px 10px;
+      border-radius:999px;
+      background:#020617;
+      border:1px solid #1f2937;
+      font-weight:600;
+    }
+    .timer.expiring{background:#3b0764;border-color:#a855f7}
+    .timer.over{background:#3b0a0a;border-color:#b91c1c}
+    .nav-row{
+      display:flex;flex-wrap:wrap;gap:4px;
+      margin-bottom:8px;
+    }
+    .btn-row{
+      display:flex;justify-content:space-between;
+      margin-top:12px;gap:8px;
+    }
+    pre{
+      background:#020617;
+      padding:8px 10px;
+      border-radius:8px;
+      font-size:.8rem;
+      overflow:auto;
+      max-height:240px;
+    }
+    @media (max-width:600px){
+      .btn-row{flex-direction:column;}
+      .btn-row button{width:100%}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Online test</h1>
+
+  <div class="panel" id="error-panel" style="display:none;">
+    <h2>Problém s načtením testu</h2>
+    <p>V odkazu chybí data testu nebo jsou poškozená. Zkus prosím odkaz znovu získat od učitele.</p>
+  </div>
+
+  <div class="panel" id="student-panel" style="display:none;">
+    <div id="student-start">
+      <h2>Test – přihlášení</h2>
+      <label>
+        Jméno nebo kód žáka:
+        <input type="text" id="student-name" placeholder="Např. Novák Jan nebo 2.A-05">
+      </label>
+      <div class="muted">Učitel podle toho pozná, čí jsou odpovědi.</div>
+      <button id="btn-start-test">Začít test</button>
+      <div id="start-error" class="muted" style="color:var(--err);margin-top:6px;"></div>
+    </div>
+
+    <div id="student-test" style="display:none;">
+      <div class="topbar">
+        <div>
+          <strong id="test-title">Test</strong><br>
+          <span class="muted" id="test-subtitle"></span>
+        </div>
+        <div id="timer" class="timer" style="display:none;">--:--</div>
+      </div>
+
+      <div class="nav-row" id="question-nav"></div>
+
+      <div id="question-area">
+        <div class="q-text" id="q-text"></div>
+        <div class="answers" id="answers"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" id="btn-prev" disabled>Předchozí otázka</button>
+        <button id="btn-next">Další otázka</button>
+      </div>
+      <div class="muted" style="margin-top:6px;" id="test-hint"></div>
+    </div>
+
+    <div id="student-result" style="display:none;margin-top:10px;">
+      <h3>Výsledek testu</h3>
+      <div id="result-summary"></div>
+      <div class="muted" style="margin-top:6px;">
+        Učitel uvidí tvé odpovědi v systému.
+      </div>
+      <pre id="result-json" style="display:none;"></pre>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_URL = "https://script.google.com/macros/s/AKfycby_nyIz2pYtHD3h00e0W9cxi25DuEEe4jAN3a2MHj-2Y-fmGoffC_SE_zYj4VDNUC-x/exec";
+
+  let testConfig = null;
+  let testState = {
+    studentName: "",
+    startedAt: null,
+    finishedAt: null,
+    currentIndex: 0,
+    answers: {},
+    timerMode: null,
+    remainingSeconds: 0,
+    timerInterval: null,
+    finished: false
+  };
+
+  const errorPanel   = document.getElementById('error-panel');
+  const studentPanel = document.getElementById('student-panel');
+
+  // === Načtení testu z URL hash ===
+  (function initFromHash(){
+    try{
+      const hash = window.location.hash.slice(1);
+      if(!hash) throw new Error("empty hash");
+      const payload = JSON.parse(atob(decodeURIComponent(hash)));
+
+      if(!payload || !payload.questions || !payload.questions.length){
+        throw new Error("no questions");
+      }
+
+      testConfig = {
+        testId: payload.testId || "TEST",
+        questions: payload.questions,
+        timeMode: payload.timeMode || null,
+        timeLimitSec: payload.timeLimitSec || null,
+        startAt: payload.startAt || null,
+        endAt: payload.endAt || null
+      };
+
+      document.getElementById('test-title').textContent = `Test: ${testConfig.testId}`;
+      const subtitle = document.getElementById('test-subtitle');
+      if(testConfig.timeMode === "limit" && testConfig.timeLimitSec){
+        subtitle.textContent = `Časový limit: ${Math.round(testConfig.timeLimitSec/60)} minut`;
+      }else if(testConfig.timeMode === "window" && testConfig.startAt && testConfig.endAt){
+        subtitle.textContent = `Test lze psát mezi ${formatDateTime(testConfig.startAt)} a ${formatDateTime(testConfig.endAt)}.`;
+      }else{
+        subtitle.textContent = `Bez časového omezení.`;
+      }
+
+      studentPanel.style.display = "block";
+    }catch(e){
+      console.error("Chyba při načítání testu z URL:", e);
+      errorPanel.style.display = "block";
+      studentPanel.style.display = "none";
+    }
+  })();
+
+  // --- Studentská logika (stejná jako u učitele) ---
+  const btnStartTest  = document.getElementById('btn-start-test');
+  const startError    = document.getElementById('start-error');
+  const studentStartDiv  = document.getElementById('student-start');
+  const studentTestDiv   = document.getElementById('student-test');
+  const studentResultDiv = document.getElementById('student-result');
+  const timerEl      = document.getElementById('timer');
+  const questionNav  = document.getElementById('question-nav');
+  const qTextEl      = document.getElementById('q-text');
+  const answersEl    = document.getElementById('answers');
+  const btnPrev      = document.getElementById('btn-prev');
+  const btnNext      = document.getElementById('btn-next');
+  const testHint     = document.getElementById('test-hint');
+  const resultSummary= document.getElementById('result-summary');
+  const resultJson   = document.getElementById('result-json');
+
+  btnStartTest.addEventListener('click', ()=>{
+    if(!testConfig){
+      alert("Chybí data testu, kontaktuj učitele.");
+      return;
+    }
+    const name = document.getElementById('student-name').value.trim();
+    if(!name){
+      startError.textContent = "Zadej prosím své jméno nebo kód.";
+      return;
+    }
+    startError.textContent = "";
+    testState.studentName = name;
+    testState.startedAt = new Date().toISOString();
+    testState.finished = false;
+    testState.currentIndex = 0;
+    testState.answers = {};
+    testState.finishedAt = null;
+    if(testState.timerInterval){
+      clearInterval(testState.timerInterval);
+      testState.timerInterval = null;
+    }
+
+    if(testConfig.timeMode === "window" && testConfig.startAt && testConfig.endAt){
+      const now = new Date();
+      const startAt = new Date(testConfig.startAt);
+      const endAt   = new Date(testConfig.endAt);
+      if(now < startAt){
+        alert("Test ještě nezačal.");
+        return;
+      }
+      if(now > endAt){
+        alert("Test už byl ukončen.");
+        return;
+      }
+    }
+
+    if(testConfig.timeMode === "limit" && testConfig.timeLimitSec){
+      testState.timerMode = "limit";
+      testState.remainingSeconds = testConfig.timeLimitSec;
+      timerEl.style.display = "inline-flex";
+      updateTimerDisplay();
+      testState.timerInterval = setInterval(()=>{
+        testState.remainingSeconds--;
+        if(testState.remainingSeconds <= 0){
+          testState.remainingSeconds = 0;
+          updateTimerDisplay(true);
+          clearInterval(testState.timerInterval);
+          testState.timerInterval = null;
+          if(!testState.finished){
+            finishTest("timeup");
+          }
+        }else{
+          updateTimerDisplay();
+        }
+      },1000);
+    }else{
+      timerEl.style.display = "none";
+      testState.timerMode = null;
+    }
+
+    studentStartDiv.style.display = "none";
+    studentTestDiv.style.display = "block";
+    studentResultDiv.style.display = "none";
+
+    buildQuestionNav();
+    renderCurrentQuestion();
+    testHint.textContent = "Zelená čísla nahoře označují otázky, u kterých už máš nějakou odpověď.";
+  });
+
+  function updateTimerDisplay(isOver){
+    const s = testState.remainingSeconds;
+    const m = Math.floor(s/60);
+    const sec = s % 60;
+    timerEl.textContent = `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+    timerEl.classList.remove("expiring","over");
+    if(isOver){
+      timerEl.classList.add("over");
+    }else if(s <= 60){
+      timerEl.classList.add("expiring");
+    }
+  }
+
+  function buildQuestionNav(){
+    questionNav.innerHTML = "";
+    const qs = testConfig.questions;
+    for(let i=0;i<qs.length;i++){
+      const badge = document.createElement("div");
+      badge.className = "badge";
+      badge.dataset.index = i;
+      badge.textContent = (i+1);
+      badge.addEventListener('click', ()=>{
+        if(testState.finished) return;
+        saveCurrentAnswers();
+        testState.currentIndex = i;
+        renderCurrentQuestion();
+      });
+      questionNav.appendChild(badge);
+    }
+    refreshQuestionNavStyles();
+  }
+
+  function refreshQuestionNavStyles(){
+    const badges = questionNav.querySelectorAll(".badge");
+    const qs = testConfig.questions;
+    badges.forEach(b=>{
+      b.classList.remove("answered","current");
+      const idx = parseInt(b.dataset.index,10);
+      const q = qs[idx];
+      const ans = testState.answers[q.id];
+      if(ans && ans.length>0){
+        b.classList.add("answered");
+      }
+      if(idx === testState.currentIndex){
+        b.classList.add("current");
+      }
+    });
+  }
+
+  function renderCurrentQuestion(){
+    const qs = testConfig.questions;
+    const index = testState.currentIndex;
+    const q = qs[index];
+    if(!q) return;
+
+    qTextEl.textContent = `Otázka ${index+1}/${qs.length}: ${q.text}`;
+    answersEl.innerHTML = "";
+
+    const selected = testState.answers[q.id] || [];
+
+    q.answers.forEach((a,idx)=>{
+      const label = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = selected.includes(idx);
+      input.addEventListener('change', ()=>{
+        saveCurrentAnswers();
+        refreshQuestionNavStyles();
+      });
+      const span = document.createElement("span");
+      span.textContent = a.text;
+      label.appendChild(input);
+      label.appendChild(span);
+      answersEl.appendChild(label);
+    });
+
+    btnPrev.disabled = (index === 0);
+    btnNext.textContent = (index === qs.length-1) ? "Ukončit test" : "Další otázka";
+    refreshQuestionNavStyles();
+  }
+
+  function saveCurrentAnswers(){
+    const qs = testConfig.questions;
+    const index = testState.currentIndex;
+    const q = qs[index];
+    if(!q) return;
+    const checkboxes = answersEl.querySelectorAll("input[type='checkbox']");
+    const selected = [];
+    checkboxes.forEach((cb,idx)=>{
+      if(cb.checked) selected.push(idx);
+    });
+    testState.answers[q.id] = selected;
+  }
+
+  btnPrev.addEventListener('click', ()=>{
+    if(testState.currentIndex > 0){
+      saveCurrentAnswers();
+      testState.currentIndex--;
+      renderCurrentQuestion();
+    }
+  });
+
+  btnNext.addEventListener('click', ()=>{
+    const qs = testConfig.questions;
+    const index = testState.currentIndex;
+    if(index < qs.length-1){
+      saveCurrentAnswers();
+      testState.currentIndex++;
+      renderCurrentQuestion();
+    }else{
+      const ok = confirm("Opravdu chceš test ukončit?");
+      if(ok){
+        saveCurrentAnswers();
+        finishTest("manual");
+      }
+    }
+  });
+
+  function finishTest(reason){
+    if(testState.finished) return;
+    testState.finished = true;
+    testState.finishedAt = new Date().toISOString();
+    if(testState.timerInterval){
+      clearInterval(testState.timerInterval);
+      testState.timerInterval = null;
+    }
+
+    const qs = testConfig.questions;
+    let points = 0;
+    const details = [];
+
+    qs.forEach((q,idx)=>{
+      const answersTexts = q.answers.map(a=>a.text);
+      const correctIdxs = q.answers
+        .map((a,i)=>a.isCorrect ? i : -1)
+        .filter(i=>i>=0);
+      const selectedIdxs = testState.answers[q.id] || [];
+      const isCorrect =
+        correctIdxs.length === selectedIdxs.length &&
+        correctIdxs.every(i=>selectedIdxs.includes(i));
+      if(isCorrect) points++;
+
+      const correctTexts  = correctIdxs.map(i=>answersTexts[i]);
+      const selectedTexts = selectedIdxs.map(i=>answersTexts[i]);
+
+      details.push({
+        questionIndex: idx+1,
+        questionId: q.id,
+        questionText: q.text,
+        answersTexts: answersTexts,
+        correctAnswerIndices: correctIdxs,
+        selectedAnswerIndices: selectedIdxs,
+        correctAnswersTexts: correctTexts,
+        selectedAnswersTexts: selectedTexts,
+        isCorrect
+      });
+    });
+
+    const result = {
+      studentName: testState.studentName,
+      testId: testConfig.testId,
+      startedAt: testState.startedAt,
+      finishedAt: testState.finishedAt,
+      reason,
+      totalPoints: points,
+      maxPoints: qs.length,
+      answers: details
+    };
+
+    studentTestDiv.style.display = "none";
+    studentResultDiv.style.display = "block";
+    resultSummary.textContent = `Získal/a jsi ${points} z ${qs.length} bodů.`;
+
+    // pro žáka JSON neukazujeme
+    resultJson.textContent = JSON.stringify(result, null, 2);
+
+    sendEvent("finish", result);
+  }
+
+  document.addEventListener('visibilitychange', ()=>{
+    if(testState.startedAt && !testState.finished && document.hidden){
+      sendEvent("leave", { reason:"visibility-hidden", time:new Date().toISOString() });
+      alert("Test byl ukončen (opuštění okna).");
+      finishTest("left-window");
+    }
+  });
+
+  window.addEventListener('blur', ()=>{
+    if(testState.startedAt && !testState.finished){
+      sendEvent("leave", { reason:"blur", time:new Date().toISOString() });
+      alert("Test byl ukončen (jiné okno).");
+      finishTest("left-window");
+    }
+  });
+
+  function sendEvent(eventType, payload){
+    if(!API_URL) return;
+    const body = Object.assign({}, payload, {
+      eventType,
+      testId: testConfig ? testConfig.testId : "",
+      studentName: testState.studentName || ""
+    });
+    try{
+      fetch(API_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(body)
+      }).catch(err=>{
+        console.error("Chyba při odesílání na server:", err);
+      });
+    }catch(e){
+      console.error(e);
+    }
+  }
+
+  function formatDateTime(iso){
+    const d = new Date(iso);
+    if(isNaN(d.getTime())) return iso;
+    const pad = n => String(n).padStart(2,"0");
+    return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+</script>
+</body>
+</html>
 
