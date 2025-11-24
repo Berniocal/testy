@@ -194,9 +194,12 @@
   // === Načtení testu z URL hash ===
   (function initFromHash(){
     try{
-      const hash = window.location.hash.slice(1);
-      if(!hash) throw new Error("empty hash");
-      const payload = JSON.parse(atob(decodeURIComponent(hash)));
+const hash = window.location.hash.slice(1);
+if (!hash) throw new Error("empty hash");
+
+// Dekódování páru z teacher-test.html (bez base64)
+const payload = JSON.parse(decodeURIComponent(hash));
+
 
       if(!payload || !payload.questions || !payload.questions.length){
         throw new Error("no questions");
