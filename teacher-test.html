@@ -406,19 +406,20 @@
     const cfg = buildTestConfig();
     if(!cfg) return;
 
-    const payload = {
-      testId: cfg.testId,
-      questions: cfg.questions,
-      timeMode: cfg.timeMode,
-      timeLimitSec: cfg.timeLimitSec,
-      startAt: cfg.startAt,
-      endAt: cfg.endAt
-    };
+ const payload = {
+  testId: cfg.testId,
+  questions: cfg.questions,
+  timeMode: cfg.timeMode,
+  timeLimitSec: cfg.timeLimitSec,
+  startAt: cfg.startAt,
+  endAt: cfg.endAt
+};
 
-    const encoded = encodeURIComponent(btoa(JSON.stringify(payload)));
+// KÓDOVÁNÍ BEZ btoa – funguje i s diakritikou
+const encoded = encodeURIComponent(JSON.stringify(payload));
 
-    // student-test.html je ve stejné složce → stačí relativní odkaz
-    const studentUrl = `student-test.html#${encoded}`;
+const studentUrl = `student-test.html#${encoded}`;
+
 
     linkOutput.innerHTML = `
       <strong>Odkaz pro žáky:</strong><br>
