@@ -120,8 +120,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Online test</h1>
-
+  <h1 id="page-title">Online test</h1>
   <div class="panel" id="error-panel" style="display:none;">
     <h2>Problém s načtením testu</h2>
     <p>V odkazu chybí data testu nebo jsou poškozená. Zkus prosím odkaz znovu získat od učitele.</p>
@@ -191,6 +190,8 @@
 
   const errorPanel   = document.getElementById('error-panel');
   const studentPanel = document.getElementById('student-panel');
+  const keepAwakeVideo = document.getElementById('keep-awake-video');
+
 
   // === Načtení testu z URL hash ===
   (function initFromHash(){
@@ -275,6 +276,23 @@ testConfig = {
     startError.textContent = "";
     testState.studentName = name;
     testState.startedAt = new Date().toISOString();
+      // pokus o spuštění „udržovacího“ videa proti zamknutí obrazovky
+  if (keepAwakeVideo) {
+    keepAwakeVideo.play().catch(err => {
+      console.log("Autoplay videa byl blokován prohlížečem:", err);
+    });
+  }
+
+      // změna nadpisů na jméno žáka
+  const pageTitleEl = document.getElementById('page-title');
+  if (pageTitleEl) pageTitleEl.textContent = name;
+
+  const testTitleEl = document.getElementById('test-title');
+  if (testTitleEl) testTitleEl.textContent = name;
+
+  // volitelně i záložka prohlížeče
+  document.title = name + " – online test";
+
     testState.finished = false;
     testState.currentIndex = 0;
     testState.answers = {};
@@ -453,6 +471,12 @@ testConfig = {
     if(testState.finished) return;
     testState.finished = true;
     testState.finishedAt = new Date().toISOString();
+      // zastavit fake video
+  if (keepAwakeVideo) {
+    keepAwakeVideo.pause();
+    keepAwakeVideo.currentTime = 0;
+  }
+
     if(testState.timerInterval){
       clearInterval(testState.timerInterval);
       testState.timerInterval = null;
@@ -562,6 +586,16 @@ testConfig = {
 }
 
 </script>
+  <video
+  id="keep-awake-video"
+  muted
+  playsinline
+  loop
+  style="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;"
+>
+  <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
+</video>
+
 </body>
 </html>
 
