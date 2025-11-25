@@ -198,22 +198,35 @@
 const hash = window.location.hash.slice(1);
 if (!hash) throw new Error("empty hash");
 
-// Dekódování páru z teacher-test.html (bez base64)
+// v teacher-test.html jsme použili encodeURIComponent(JSON.stringify(...))
 const payload = JSON.parse(decodeURIComponent(hash));
 
+let questions = payload.questions || [];
+if (!Array.isArray(questions) || !questions.length) {
+  throw new Error("no questions");
+}
 
-      if(!payload || !payload.questions || !payload.questions.length){
-        throw new Error("no questions");
-      }
+// tady se teprve MÍCHÁ – každý žák jinak
+if (payload.shuffleQuestions) {
+  questions = shuffle(questions);
+}
+if (payload.shuffleAnswers) {
+  questions = questions.map(q => {
+    return Object.assign({}, q, {
+      answers: shuffle(q.answers || [])
+    });
+  });
+}
 
-      testConfig = {
-        testId: payload.testId || "TEST",
-        questions: payload.questions,
-        timeMode: payload.timeMode || null,
-        timeLimitSec: payload.timeLimitSec || null,
-        startAt: payload.startAt || null,
-        endAt: payload.endAt || null
-      };
+testConfig = {
+  testId: payload.testId || "TEST",
+  questions,
+  timeMode: payload.timeMode || null,
+  timeLimitSec: payload.timeLimitSec || null,
+  startAt: payload.startAt || null,
+  endAt: payload.endAt || null
+};
+
 
       document.getElementById('test-title').textContent = `Test: ${testConfig.testId}`;
       const subtitle = document.getElementById('test-subtitle');
@@ -539,6 +552,15 @@ const payload = JSON.parse(decodeURIComponent(hash));
     const pad = n => String(n).padStart(2,"0");
     return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
+  function shuffle(arr){
+  const a = (arr || []).slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
 </script>
 </body>
 </html>
