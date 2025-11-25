@@ -436,7 +436,13 @@ btnGenLink.addEventListener('click', ()=>{
 
   // žádné btoa – ať funguje diakritika
   const encoded = encodeURIComponent(JSON.stringify(payload));
-  const studentUrl = `student-test.html#${encoded}`;
+
+  // ABSOLUTNÍ URL na student-test.html ve stejné složce jako teacher-test.html
+  const studentUrl =
+    window.location.origin +
+    window.location.pathname.replace("teacher-test.html", "student-test.html") +
+    "#" + encoded;
+
 
   linkOutput.innerHTML = `
     <strong>Odkaz pro žáky:</strong><br>
@@ -446,9 +452,12 @@ btnGenLink.addEventListener('click', ()=>{
   const qrDiv = document.getElementById('qr-container');
   qrDiv.innerHTML = `
     <div class="muted" style="margin-top:6px;">QR kód pro žáky:</div>
-    <img src="https://chart.googleapis.com/chart?cht=qr&chs=240x240&chl=${encodeURIComponent(studentUrl)}"
-         alt="QR kód testu">
+    <img
+      src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(studentUrl)}"
+      alt="QR kód testu"
+    >
   `;
+
 });
 
 
