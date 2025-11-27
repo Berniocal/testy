@@ -282,72 +282,68 @@
   });
 
   // === GENEROVÁNÍ ODKAZU A QR KÓDU – ULOŽENÍ TESTU NA SERVER ===
-  btnGenLink.addEventListener('click', ()=>{
-    if(!loadedQuestions.length){
-      alert("Nejdřív nahraj Excel.");
-      return;
-    }
+btnGenLink.addEventListener('click', ()=>{
+  if(!loadedQuestions.length){
+    alert("Nejdřív nahraj Excel.");
+    return;
+  }
 
-    const shuffleQuestionsFlag = document.getElementById('shuffle-questions').checked;
-    const shuffleAnswersFlag   = document.getElementById('shuffle-answers').checked;
-    const modeLimit  = document.getElementById('mode-limit').checked;
-    const modeWindow = document.getElementById('mode-window').checked;
-    const timeLimitMin = parseInt(document.getElementById('time-limit').value,10) || 0;
-    const startAtStr = document.getElementById('start-at').value;
-    const endAtStr   = document.getElementById('end-at').value;
-    const testIdInput = document.getElementById('test-id');
-    const testId = testIdInput && testIdInput.value.trim()
-      ? testIdInput.value.trim()
-      : "TEST-" + Date.now();
+  const shuffleQuestionsFlag = document.getElementById('shuffle-questions').checked;
+  const shuffleAnswersFlag   = document.getElementById('shuffle-answers').checked;
+  const modeLimit  = document.getElementById('mode-limit').checked;
+  const modeWindow = document.getElementById('mode-window').checked;
+  const timeLimitMin = parseInt(document.getElementById('time-limit').value,10) || 0;
+  const startAtStr = document.getElementById('start-at').value;
+  const endAtStr   = document.getElementById('end-at').value;
+  const testIdInput = document.getElementById('test-id');
+  const testId = testIdInput && testIdInput.value.trim()
+    ? testIdInput.value.trim()
+    : "TEST-" + Date.now();
 
-    const testDefinition = {
-      testId,
-      questions: loadedQuestions, // NEZAMÍCHANÉ; žák si zamíchá podle flagů
-      shuffleQuestions: shuffleQuestionsFlag,
-      shuffleAnswers:   shuffleAnswersFlag,
-      timeMode: modeLimit ? "limit" : (modeWindow ? "window" : null),
-      timeLimitSec: modeLimit && timeLimitMin>0 ? timeLimitMin*60 : null,
-      startAt: modeWindow && startAtStr ? new Date(startAtStr).toISOString() : null,
-      endAt:   modeWindow && endAtStr   ? new Date(endAtStr).toISOString()   : null
-    };
+  // objekt testu, který se uloží do Google Sheets -> Testy
+  const testObj = {
+    testId,
+    questions: loadedQuestions,   // nezamíchané, shuffle až u žáka
+    shuffleQuestions: shuffleQuestionsFlag,
+    shuffleAnswers:   shuffleAnswersFlag,
+    timeMode: modeLimit ? "limit" : (modeWindow ? "window" : null),
+    timeLimitSec: modeLimit && timeLimitMin>0 ? timeLimitMin*60 : null,
+    startAt: modeWindow && startAtStr ? new Date(startAtStr).toISOString() : null,
+    endAt:   modeWindow && endAtStr   ? new Date(endAtStr).toISOString()   : null
+  };
 
-    // uložit test na server (Apps Script) – eventType: saveTest
-    if (API_URL) {
-      try {
-        fetch(API_URL, {
-          method: "POST",
-          mode: "no-cors",
-          body: JSON.stringify({
-            eventType: "saveTest",
-            test: testDefinition
-          })
-        }).catch(err => console.error("Chyba při ukládání testu:", err));
-      } catch (e) {
-        console.error(e);
-      }
-    }
+  // pošli test na Apps Script (eventType = saveTest)
+  try{
+    fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",          // CORS neřešíme, jen posíláme
+      body: JSON.stringify({
+        eventType: "saveTest",
+        testId: testId,
+        test: testObj
+      })
+    });
+  }catch(err){
+    console.error("Chyba při odesílání testu na server:", err);
+  }
 
-    const baseUrl = window.location.origin +
-      window.location.pathname.replace("teacher-test.html", "student-test.html");
-    const encodedTestId = encodeURIComponent(testId);
-    const studentUrl = `${baseUrl}#${encodedTestId}`;
+  const studentUrl = `student-test.html#${encodeURIComponent(testId)}`;
 
-    linkOutput.innerHTML = `
-      <strong>Odkaz pro žáky:</strong><br>
-      <a href="${studentUrl}" target="_blank">${studentUrl}</a>
-    `;
+  linkOutput.innerHTML = `
+    <strong>Odkaz pro žáky:</strong><br>
+    <a href="${studentUrl}" target="_blank">${studentUrl}</a>
+  `;
 
-    const qrDiv = document.getElementById('qr-container');
-    qrDiv.innerHTML = `
-      <div class="muted" style="margin-top:6px;">QR kód pro žáky:</div>
-      <img
-        src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(studentUrl)}"
-        alt="QR kód testu"
-      >
-    `;
+  const qrDiv = document.getElementById('qr-container');
+  qrDiv.innerHTML = `
+    <div class="muted" style="margin-top:6px;">QR kód pro žáky:</div>
+    <img src="https://chart.googleapis.com/chart?cht=qr&chs=240x240&chl=${encodeURIComponent(studentUrl)}"
+         alt="QR kód testu">
+  `;
 
-    teacherInfo.textContent = `Test "${testId}" byl uložen. Odkaz a QR kód jsou připravené.`;
-  });
+  teacherInfo.textContent = "Test byl odeslán na server (uložen pod ID: " + testId + ").";
+});
+
 
   function escapeHtml(str){
     return String(str)
