@@ -228,7 +228,7 @@ const keepAwakeVideo = document.getElementById('keep-awake-video');
 const pageTitleEl = document.getElementById('page-title');
 
 // === Načtení testId z URL a JSON testu ze serveru ===
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
   const hash = window.location.hash.slice(1);
   if (!hash) {
     loadingPanel.style.display = "none";
@@ -240,66 +240,81 @@ document.addEventListener('DOMContentLoaded', async () => {
   pageTitleEl.textContent = "Online test – " + testId;
   document.title = "Online test – " + testId;
 
-  try {
-    const url = API_URL + "?mode=getTest&testId=" + encodeURIComponent(testId);
-    const res = await fetch(url);
-    if (!res.ok) {
-      throw new Error("HTTP " + res.status);
-    }
-    const data = await res.json();
-    if (data.status !== 'ok' || !data.test) {
-      throw new Error(data.message || "Test nebyl nalezen.");
-    }
-    const t = data.test;
-    // zamíchání otázek a odpovědí podle příznaků
-    let questions = t.questions || [];
-    if (!Array.isArray(questions) || !questions.length) {
-      throw new Error("Test neobsahuje žádné otázky.");
-    }
-    if (t.shuffleQuestions) {
-      questions = shuffle(questions);
-    }
-    if (t.shuffleAnswers) {
-      questions = questions.map(q => {
-        return {
+  // unikátní jméno callbacku pro JSONP
+  const callbackName = "handleTest_" + Date.now();
+  window[callbackName] = function(data) {
+    // tahle funkce se zavolá, až Apps Script vrátí data
+
+    try {
+      if (!data || data.status !== 'ok' || !data.test) {
+        throw new Error(data && data.message ? data.message : "Test nebyl nalezen.");
+      }
+      const t = data.test;
+
+      // zamíchání otázek a odpovědí podle příznaků
+      let questions = t.questions || [];
+      if (!Array.isArray(questions) || !questions.length) {
+        throw new Error("Test neobsahuje žádné otázky.");
+      }
+      if (t.shuffleQuestions) {
+        questions = shuffle(questions);
+      }
+      if (t.shuffleAnswers) {
+        questions = questions.map(q => ({
           id: q.id,
           text: q.text,
           answers: shuffle(q.answers || [])
-        };
-      });
+        }));
+      }
+
+      testConfig = {
+        testId: t.testId || testId,
+        questions,
+        timeMode: t.timeMode || null,
+        timeLimitSec: t.timeLimitSec || null,
+        startAt: t.startAt || null,
+        endAt: t.endAt || null
+      };
+
+      loadingPanel.style.display = "none";
+      errorPanel.style.display   = "none";
+      studentPanel.style.display = "block";
+
+      let infoText = `Kód testu: ${testConfig.testId}. Otázek: ${questions.length}.`;
+      if (testConfig.timeMode === "limit" && testConfig.timeLimitSec) {
+        infoText += ` Časový limit: ${Math.round(testConfig.timeLimitSec/60)} minut.`;
+      } else if (testConfig.timeMode === "window" && testConfig.startAt && testConfig.endAt) {
+        infoText += ` Test lze psát mezi ${formatDateTime(testConfig.startAt)} a ${formatDateTime(testConfig.endAt)}.`;
+      } else {
+        infoText += ` Bez pevného časového limitu.`;
+      }
+      testInfo.textContent = infoText;
+
+    } catch (err) {
+      console.error(err);
+      loadingPanel.style.display = "none";
+      errorPanel.style.display = "block";
+      errorText.textContent = "Nepodařilo se načíst test: " + err.message;
+    } finally {
+      // uklid – callback už není potřeba
+      try { delete window[callbackName]; } catch(_) {}
     }
+  };
 
-    testConfig = {
-      testId: t.testId || testId,
-      questions,
-      timeMode: t.timeMode || null,
-      timeLimitSec: t.timeLimitSec || null,
-      startAt: t.startAt || null,
-      endAt: t.endAt || null
-    };
-
-    loadingPanel.style.display = "none";
-    errorPanel.style.display   = "none";
-    studentPanel.style.display = "block";
-
-    // info pro žáka
-    let infoText = `Kód testu: ${testConfig.testId}. Otázek: ${questions.length}.`;
-    if (testConfig.timeMode === "limit" && testConfig.timeLimitSec) {
-      infoText += ` Časový limit: ${Math.round(testConfig.timeLimitSec/60)} minut.`;
-    } else if (testConfig.timeMode === "window" && testConfig.startAt && testConfig.endAt) {
-      infoText += ` Test lze psát mezi ${formatDateTime(testConfig.startAt)} a ${formatDateTime(testConfig.endAt)}.`;
-    } else {
-      infoText += ` Bez pevného časového limitu.`;
-    }
-    testInfo.textContent = infoText;
-
-  } catch (err) {
-    console.error(err);
+  // vytvoříme <script>, tím obejdeme CORS
+  const script = document.createElement("script");
+  script.src = API_URL
+    + "?mode=getTest"
+    + "&testId=" + encodeURIComponent(testId)
+    + "&callback=" + encodeURIComponent(callbackName);
+  script.onerror = function() {
     loadingPanel.style.display = "none";
     errorPanel.style.display = "block";
-    errorText.textContent = "Nepodařilo se načíst test: " + err.message;
-  }
+    errorText.textContent = "Nepodařilo se načíst test (chyba skriptu).";
+  };
+  document.body.appendChild(script);
 });
+
 
 // === Start testu po zadání jména ===
 btnStartTest.addEventListener('click', ()=>{
