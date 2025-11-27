@@ -340,6 +340,28 @@ btnGenLink.addEventListener('click', ()=>{
     <img src="https://chart.googleapis.com/chart?cht=qr&chs=240x240&chl=${encodeURIComponent(studentUrl)}"
          alt="QR kód testu">
   `;
+  // --- uložit definici testu na server (Apps Script) ---
+  if (API_URL) {
+    const body = {
+      eventType: 'saveTest',
+      testId: testId,
+      // tady dáme stejný objekt, jaký jsme před chvílí použili pro studenty
+      test: payload
+    };
+
+    try {
+      fetch(API_URL, {
+        method: "POST",
+        mode: "no-cors",                 // odpověď nás nezajímá, jen aby to došlo
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      }).catch(err => {
+        console.error("Chyba při ukládání testu na server:", err);
+      });
+    } catch (e) {
+      console.error("Výjimka při ukládání testu:", e);
+    }
+  }
 
   teacherInfo.textContent = "Test byl odeslán na server (uložen pod ID: " + testId + ").";
 });
