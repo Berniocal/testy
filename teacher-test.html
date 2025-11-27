@@ -281,9 +281,9 @@
     alert("Lokální náhled teď neřešíme, důležitý je odkaz a QR pro žáky.");
   });
 
-  // === GENEROVÁNÍ ODKAZU A QR KÓDU – ULOŽENÍ TESTU NA SERVER ===
-btnGenLink.addEventListener('click', ()=>{
-  if(!loadedQuestions.length){
+// --- 5) Generování odkazu pro žáky + uložení testu na server ---
+btnGenLink.addEventListener('click', () => {
+  if (!loadedQuestions.length) {
     alert("Nejdřív nahraj Excel.");
     return;
   }
@@ -292,7 +292,7 @@ btnGenLink.addEventListener('click', ()=>{
   const shuffleAnswersFlag   = document.getElementById('shuffle-answers').checked;
   const modeLimit  = document.getElementById('mode-limit').checked;
   const modeWindow = document.getElementById('mode-window').checked;
-  const timeLimitMin = parseInt(document.getElementById('time-limit').value,10) || 0;
+  const timeLimitMin = parseInt(document.getElementById('time-limit').value, 10) || 0;
   const startAtStr = document.getElementById('start-at').value;
   const endAtStr   = document.getElementById('end-at').value;
   const testIdInput = document.getElementById('test-id');
@@ -300,34 +300,21 @@ btnGenLink.addEventListener('click', ()=>{
     ? testIdInput.value.trim()
     : "TEST-" + Date.now();
 
-  // objekt testu, který se uloží do Google Sheets -> Testy
-  const testObj = {
+  // 1) objekt s definicí testu – NEZAMÍCHANÉ otázky
+  const payload = {
     testId,
-    questions: loadedQuestions,   // nezamíchané, shuffle až u žáka
+    questions: loadedQuestions,
     shuffleQuestions: shuffleQuestionsFlag,
     shuffleAnswers:   shuffleAnswersFlag,
     timeMode: modeLimit ? "limit" : (modeWindow ? "window" : null),
-    timeLimitSec: modeLimit && timeLimitMin>0 ? timeLimitMin*60 : null,
+    timeLimitSec: modeLimit && timeLimitMin > 0 ? timeLimitMin * 60 : null,
     startAt: modeWindow && startAtStr ? new Date(startAtStr).toISOString() : null,
     endAt:   modeWindow && endAtStr   ? new Date(endAtStr).toISOString()   : null
   };
 
-  // pošli test na Apps Script (eventType = saveTest)
-  try{
-    fetch(API_URL, {
-      method: "POST",
-      mode: "no-cors",          // CORS neřešíme, jen posíláme
-      body: JSON.stringify({
-        eventType: "saveTest",
-        testId: testId,
-        test: testObj
-      })
-    });
-  }catch(err){
-    console.error("Chyba při odesílání testu na server:", err);
-  }
-
-  const studentUrl = `student-test.html#${encodeURIComponent(testId)}`;
+  // 2) odkaz pro žáky – JSON v hash části URL
+  const encoded = encodeURIComponent(JSON.stringify(payload));
+  const studentUrl = `student-test.html#${encoded}`;
 
   linkOutput.innerHTML = `
     <strong>Odkaz pro žáky:</strong><br>
@@ -340,19 +327,19 @@ btnGenLink.addEventListener('click', ()=>{
     <img src="https://chart.googleapis.com/chart?cht=qr&chs=240x240&chl=${encodeURIComponent(studentUrl)}"
          alt="QR kód testu">
   `;
-  // --- uložit definici testu na server (Apps Script) ---
+
+  // 3) uložení definice testu na server (Apps Script)
   if (API_URL) {
     const body = {
       eventType: 'saveTest',
       testId: testId,
-      // tady dáme stejný objekt, jaký jsme před chvílí použili pro studenty
       test: payload
     };
 
     try {
       fetch(API_URL, {
         method: "POST",
-        mode: "no-cors",                 // odpověď nás nezajímá, jen aby to došlo
+        mode: "no-cors", // odpověď nás nezajímá, jen aby to došlo
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
       }).catch(err => {
@@ -363,7 +350,7 @@ btnGenLink.addEventListener('click', ()=>{
     }
   }
 
-  teacherInfo.textContent = "Test byl odeslán na server (uložen pod ID: " + testId + ").";
+  console.log("saveTest odeslán pro testId:", testId);
 });
 
 
