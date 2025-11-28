@@ -241,34 +241,41 @@ const keepAwakeVideo = document.getElementById('keep-awake-video');
 const pageTitleEl = document.getElementById('page-title');
 
 // === Načtení testId z URL a JSON testu ze serveru ===
+// === Načtení testId z URL a JSON testu ze serveru (fetch + CORS) ===
 document.addEventListener('DOMContentLoaded', () => {
   const hash = window.location.hash.slice(1);
+
   if (!hash) {
     loadingPanel.style.display = "none";
-    errorPanel.style.display = "block";
-    errorText.textContent = "V URL není uveden kód testu (hash). Zkontroluj, zda používáš správný odkaz.";
+    errorPanel.style.display   = "block";
+    errorText.textContent =
+      "V URL není uveden kód testu (hash). Zkontroluj, zda používáš správný odkaz.";
     return;
   }
+
   const testId = decodeURIComponent(hash);
   pageTitleEl.textContent = "Online test – " + testId;
-  document.title = "Online test – " + testId;
+  document.title          = "Online test – " + testId;
 
-  // unikátní jméno callbacku pro JSONP
-  const callbackName = "handleTest_" + Date.now();
-  window[callbackName] = function(data) {
-    // tahle funkce se zavolá, až Apps Script vrátí data
-
-    try {
-      if (!data || data.status !== 'ok' || !data.test) {
+  fetch(API_URL + "?testId=" + encodeURIComponent(testId))
+    .then(res => {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    })
+    .then(data => {
+      if (!data || data.status !== "ok" || !data.test) {
         throw new Error(data && data.message ? data.message : "Test nebyl nalezen.");
       }
+
       const t = data.test;
 
-      // zamíchání otázek a odpovědí podle příznaků
+      // otázky z definice
       let questions = t.questions || [];
       if (!Array.isArray(questions) || !questions.length) {
         throw new Error("Test neobsahuje žádné otázky.");
       }
+
+      // případné míchání
       if (t.shuffleQuestions) {
         questions = shuffle(questions);
       }
@@ -280,6 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }));
       }
 
+      // finální konfigurace pro běh testu
       testConfig = {
         testId: t.testId || testId,
         questions,
@@ -289,44 +297,30 @@ document.addEventListener('DOMContentLoaded', () => {
         endAt: t.endAt || null
       };
 
+      // přepnutí UI
       loadingPanel.style.display = "none";
       errorPanel.style.display   = "none";
       studentPanel.style.display = "block";
 
       let infoText = `Kód testu: ${testConfig.testId}. Otázek: ${questions.length}.`;
       if (testConfig.timeMode === "limit" && testConfig.timeLimitSec) {
-        infoText += ` Časový limit: ${Math.round(testConfig.timeLimitSec/60)} minut.`;
+        infoText += ` Časový limit: ${Math.round(testConfig.timeLimitSec / 60)} minut.`;
       } else if (testConfig.timeMode === "window" && testConfig.startAt && testConfig.endAt) {
-        infoText += ` Test lze psát mezi ${formatDateTime(testConfig.startAt)} a ${formatDateTime(testConfig.endAt)}.`;
+        infoText += ` Test lze psát mezi ${formatDateTime(testConfig.startAt)} a `
+                  +  `${formatDateTime(testConfig.endAt)}.`;
       } else {
         infoText += ` Bez pevného časového limitu.`;
       }
       testInfo.textContent = infoText;
-
-    } catch (err) {
-      console.error(err);
+    })
+    .catch(err => {
+      console.error("Chyba při načítání testu:", err);
       loadingPanel.style.display = "none";
-      errorPanel.style.display = "block";
-      errorText.textContent = "Nepodařilo se načíst test: " + err.message;
-    } finally {
-      // uklid – callback už není potřeba
-      try { delete window[callbackName]; } catch(_) {}
-    }
-  };
-
-  // vytvoříme <script>, tím obejdeme CORS
-  const script = document.createElement("script");
-  script.src = API_URL
-    + "?mode=getTest"
-    + "&testId=" + encodeURIComponent(testId)
-    + "&callback=" + encodeURIComponent(callbackName);
-  script.onerror = function() {
-    loadingPanel.style.display = "none";
-    errorPanel.style.display = "block";
-    errorText.textContent = "Nepodařilo se načíst test (chyba skriptu).";
-  };
-  document.body.appendChild(script);
+      errorPanel.style.display   = "block";
+      errorText.textContent = "Nepodařilo se načíst test (chyba skriptu).";
+    });
 });
+
 
 
 // === Start testu po zadání jména ===
