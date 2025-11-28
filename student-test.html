@@ -493,13 +493,16 @@ function renderCurrentQuestion(){
   const index = testState.currentIndex;
   const q = qs[index];
   if(!q) return;
-// --- počet bodů pro tuto otázku ---
-const pts = q.points || 1;
-const ptsBadge = document.getElementById("points-badge");
-ptsBadge.textContent = `[${pts}b]`;
 
+  // --- počet bodů pro tuto otázku ---
   const pts = q.points || 1;
-qTextEl.textContent = `${index+1}) ${q.text}`;
+  const ptsBadge = document.getElementById("points-badge");
+  if (ptsBadge) {
+    ptsBadge.textContent = `[${pts}b]`;
+  }
+
+  // číslo otázky + text
+  qTextEl.textContent = `${index+1}) ${q.text}`;
   answersEl.innerHTML = "";
 
   const selected = testState.answers[q.id] || [];
@@ -526,6 +529,7 @@ qTextEl.textContent = `${index+1}) ${q.text}`;
   btnNext.textContent = (index === qs.length-1) ? "Ukončit test" : "Další otázka";
   refreshQuestionNavStyles();
 }
+
 
 function saveCurrentAnswers(){
   const qs = testConfig.questions;
