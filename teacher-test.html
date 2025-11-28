@@ -300,7 +300,7 @@ btnGenLink.addEventListener('click', () => {
     ? testIdInput.value.trim()
     : "TEST-" + Date.now();
 
-  // 1) objekt s definicí testu – NEZAMÍCHANÉ otázky
+  // definice testu – NEZAMÍCHANÉ otázky
   const payload = {
     testId,
     questions: loadedQuestions,
@@ -312,9 +312,8 @@ btnGenLink.addEventListener('click', () => {
     endAt:   modeWindow && endAtStr   ? new Date(endAtStr).toISOString()   : null
   };
 
-  // 2) odkaz pro žáky – JSON v hash části URL
-  const encoded = encodeURIComponent(JSON.stringify(payload));
-  const studentUrl = `student-test.html#${encoded}`;
+  // 1) krátký odkaz – jen testId
+  const studentUrl = `student-test.html#${encodeURIComponent(testId)}`;
 
   linkOutput.innerHTML = `
     <strong>Odkaz pro žáky:</strong><br>
@@ -328,7 +327,7 @@ btnGenLink.addEventListener('click', () => {
          alt="QR kód testu">
   `;
 
-  // 3) uložení definice testu na server (Apps Script)
+  // 2) uložení definice testu na server (do listu Log – eventType = saveTest)
   if (API_URL) {
     const body = {
       eventType: 'saveTest',
@@ -339,7 +338,7 @@ btnGenLink.addEventListener('click', () => {
     try {
       fetch(API_URL, {
         method: "POST",
-        mode: "no-cors", // odpověď nás nezajímá, jen aby to došlo
+        mode: "no-cors",               // odpověď nepotřebujeme
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
       }).catch(err => {
@@ -352,6 +351,8 @@ btnGenLink.addEventListener('click', () => {
 
   console.log("saveTest odeslán pro testId:", testId);
 });
+
+
 
 
   function escapeHtml(str){
