@@ -227,6 +227,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const t = data.test;
 
       let questions = t.questions || [];
+      // body za otázku – pokud chybí, bereme 1 bod
+questions = questions.map(q => ({
+  ...q,
+  points: typeof q.points === "number" && !isNaN(q.points) ? q.points : 1
+}));
+
+// max. počet bodů v testu
+const maxPoints = questions.reduce((sum, q) => sum + (q.points || 1), 0);
+
       if (!Array.isArray(questions) || !questions.length) {
         throw new Error("Test neobsahuje žádné otázky.");
       }
@@ -235,30 +244,35 @@ document.addEventListener('DOMContentLoaded', () => {
       if (t.shuffleQuestions) {
         questions = shuffle(questions);
       }
-      if (t.shuffleAnswers) {
-        questions = questions.map(q => ({
-          id: q.id,
-          text: q.text,
-          answers: shuffle(q.answers || [])
-        }));
-      }
+if (t.shuffleAnswers) {
+  questions = questions.map(q => ({
+    ...q, // zachová id, text, points, atd.
+    answers: shuffle(q.answers || [])
+  }));
+}
+
 
       // uložit konfiguraci pro zbytek kódu
-      testConfig = {
-        testId: t.testId || testId,
-        questions,
-        timeMode: t.timeMode || null,
-        timeLimitSec: t.timeLimitSec || null,
-        startAt: t.startAt || null,
-        endAt: t.endAt || null
-      };
+testConfig = {
+  testId: t.testId || testId,
+  questions,
+  maxPoints,
+  timeMode: t.timeMode || null,
+  timeLimitSec: t.timeLimitSec || null,
+  startAt: t.startAt || null,
+  endAt: t.endAt || null
+};
+
 
       // přepnout UI
       loadingPanel.style.display = "none";
       errorPanel.style.display   = "none";
       studentPanel.style.display = "block";
 
-      let infoText = `Kód testu: ${testConfig.testId}. Otázek: ${questions.length}.`;
+      let infoText =
+  `Kód testu: ${testConfig.testId}. ` +
+  `Otázek: ${questions.length}. ` +
+  `Maximální počet bodů: ${maxPoints}.`;
       if (testConfig.timeMode === "limit" && testConfig.timeLimitSec) {
         infoText += ` Časový limit: ${Math.round(testConfig.timeLimitSec / 60)} minut.`;
       } else if (testConfig.timeMode === "window" && testConfig.startAt && testConfig.endAt) {
@@ -464,7 +478,9 @@ function renderCurrentQuestion(){
   const q = qs[index];
   if(!q) return;
 
-  qTextEl.textContent = `Otázka ${index+1}/${qs.length}: ${q.text}`;
+  const pts = q.points || 1;
+qTextEl.textContent =
+  `Otázka ${index+1}/${qs.length} (${formatPoints(pts)}): ${q.text}`;
   answersEl.innerHTML = "";
 
   const selected = testState.answers[q.id] || [];
@@ -546,50 +562,58 @@ function finishTest(reason){
   }
 
   const qs = testConfig.questions;
-  let points = 0;
-  const details = [];
+ let totalPoints = 0;
+let maxPoints = 0;
+const details = [];
 
-  qs.forEach((q,idx)=>{
-    const answersTexts = q.answers.map(a=>a.text);
-    const correctIdxs = q.answers
-      .map((a,i)=>a.isCorrect ? i : -1)
-      .filter(i=>i>=0);
-    const selectedIdxs = testState.answers[q.id] || [];
-    const isCorrect =
-      correctIdxs.length === selectedIdxs.length &&
-      correctIdxs.every(i=>selectedIdxs.includes(i));
-    if(isCorrect) points++;
+qs.forEach((q,idx)=>{
+  const answersTexts = q.answers.map(a=>a.text);
+  const correctIdxs = q.answers
+    .map((a,i)=>a.isCorrect ? i : -1)
+    .filter(i=>i>=0);
+  const selectedIdxs = testState.answers[q.id] || [];
 
-    const correctTexts  = correctIdxs.map(i=>answersTexts[i]);
-    const selectedTexts = selectedIdxs.map(i=>answersTexts[i]);
+  const isCorrect =
+    correctIdxs.length === selectedIdxs.length &&
+    correctIdxs.every(i=>selectedIdxs.includes(i));
 
-    details.push({
-      questionIndex: idx+1,
-      questionId: q.id,
-      questionText: q.text,
-      answersTexts: answersTexts,
-      correctAnswerIndices: correctIdxs,
-      selectedAnswerIndices: selectedIdxs,
-      correctAnswersTexts: correctTexts,
-      selectedAnswersTexts: selectedTexts,
-      isCorrect
-    });
+  const qPoints = q.points || 1;
+  maxPoints += qPoints;
+  if(isCorrect) totalPoints += qPoints;
+
+  const correctTexts  = correctIdxs.map(i=>answersTexts[i]);
+  const selectedTexts = selectedIdxs.map(i=>answersTexts[i]);
+
+  details.push({
+    questionIndex: idx+1,
+    questionId: q.id,
+    questionText: q.text,
+    answersTexts: answersTexts,
+    correctAnswerIndices: correctIdxs,
+    selectedAnswerIndices: selectedIdxs,
+    correctAnswersTexts: correctTexts,
+    selectedAnswersTexts: selectedTexts,
+    isCorrect,
+    questionPoints: qPoints,
+    awardedPoints: isCorrect ? qPoints : 0
   });
+});
 
-  const result = {
-    studentName: testState.studentName,
-    testId: testConfig.testId,
-    startedAt: testState.startedAt,
-    finishedAt: testState.finishedAt,
-    reason,
-    totalPoints: points,
-    maxPoints: qs.length,
-    answers: details
-  };
+const result = {
+  studentName: testState.studentName,
+  testId: testConfig.testId,
+  startedAt: testState.startedAt,
+  finishedAt: testState.finishedAt,
+  reason,
+  totalPoints,
+  maxPoints,
+  answers: details
+};
 
-  studentTestDiv.style.display  = "none";
-  studentResultDiv.style.display= "block";
-  resultSummary.textContent = `Získal/a jsi ${points} z ${qs.length} bodů.`;
+studentTestDiv.style.display  = "none";
+studentResultDiv.style.display= "block";
+resultSummary.textContent = `Získal/a jsi ${totalPoints} z ${maxPoints} bodů.`;
+
  // resultJson.textContent    = JSON.stringify(result, null, 2);
 
   sendEvent("finish", result);
@@ -647,6 +671,13 @@ function formatDateTime(iso){
   const pad = n => String(n).padStart(2,"0");
   return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
+  function formatPoints(p){
+  if (p === 1) return "1 bod";
+  if (p >= 2 && p <= 4) return `${p} body`;
+  return `${p} bodů`;
+}
+
 </script>
 </body>
 </html>
