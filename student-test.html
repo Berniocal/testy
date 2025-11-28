@@ -153,10 +153,26 @@
 
       <div class="nav-row" id="question-nav"></div>
 
-      <div id="question-area">
-        <div class="q-text" id="q-text"></div>
-        <div class="answers" id="answers"></div>
-      </div>
+    <div id="question-area">
+
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <div class="q-text" id="q-text"></div>
+
+    <!-- pravý badge s body -->
+    <div id="points-badge" class="muted" style="
+      font-weight:600;
+      padding:4px 8px;
+      border-radius:8px;
+      background:#020617;
+      border:1px solid #1f2937;
+      margin-left:12px;
+      white-space:nowrap;
+    ">[1b]</div>
+  </div>
+
+  <div class="answers" id="answers"></div>
+</div>
+
 
       <div class="btn-row">
         <button class="btn-secondary" id="btn-prev" disabled>Předchozí otázka</button>
@@ -477,10 +493,13 @@ function renderCurrentQuestion(){
   const index = testState.currentIndex;
   const q = qs[index];
   if(!q) return;
+// --- počet bodů pro tuto otázku ---
+const pts = q.points || 1;
+const ptsBadge = document.getElementById("points-badge");
+ptsBadge.textContent = `[${pts}b]`;
 
   const pts = q.points || 1;
-qTextEl.textContent =
-  `Otázka ${index+1}/${qs.length} (${formatPoints(pts)}): ${q.text}`;
+qTextEl.textContent = `${index+1}) ${q.text}`;
   answersEl.innerHTML = "";
 
   const selected = testState.answers[q.id] || [];
