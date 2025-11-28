@@ -202,52 +202,6 @@ let testState = {
   timerInterval: null,
   finished: false
 };
-// --- Načtení konfigurace testu při startu stránky ---
-window.addEventListener('load', () => {
-  const hash = window.location.hash ? decodeURIComponent(window.location.hash.substring(1)) : "";
-
-  if (!hash) {
-    showFatalError("Chybí testId v adrese (nic za #).");
-    return;
-  }
-
-  // 1) stará varianta – v hashi je celý JSON
-  if (hash.trim().startsWith("{")) {
-    try {
-      const cfg = JSON.parse(hash);
-      initTestFromConfig(cfg);
-    } catch (err) {
-      console.error(err);
-      showFatalError("Nepodařilo se načíst test (neplatný JSON v URL).");
-    }
-    return;
-  }
-
-  // 2) nová varianta – hash = testId, musíme test stáhnout z Apps Scriptu
-  const testId = hash.trim();
-  fetch(`${API_URL}?testId=${encodeURIComponent(testId)}`)
-    .then(res => {
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return res.json();
-    })
-    .then(data => {
-      if (!data || data.status !== 'ok' || !data.test) {
-        console.error("Odpověď serveru:", data);
-        showFatalError("Nepodařilo se načíst test (nenalezen).");
-        return;
-      }
-      initTestFromConfig(data.test);
-    })
-    .catch(err => {
-      console.error("Chyba při načítání testu:", err);
-      showFatalError("Nepodařilo se načíst test (chyba skriptu).");
-    });
-});
-
-// helper na fatální chybu
-function showFatalError(msg) {
-  const titleEl = document.getElementById('page-title');
-  const mainEl = document.getElementById('main-panel');
 
   if (titleEl) titleEl.textContent = "Online test – chyba";
   if (mainEl) {
