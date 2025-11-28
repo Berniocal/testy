@@ -311,7 +311,7 @@ const btnPrev      = document.getElementById('btn-prev');
 const btnNext      = document.getElementById('btn-next');
 const testHint     = document.getElementById('test-hint');
 const resultSummary= document.getElementById('result-summary');
-const resultJson   = document.getElementById('result-json');
+//const resultJson   = document.getElementById('result-json');
 const keepAwakeVideo = document.getElementById('keep-awake-video');
 
 const pageTitleEl = document.getElementById('page-title');
@@ -590,7 +590,7 @@ function finishTest(reason){
   studentTestDiv.style.display  = "none";
   studentResultDiv.style.display= "block";
   resultSummary.textContent = `Získal/a jsi ${points} z ${qs.length} bodů.`;
-  resultJson.textContent    = JSON.stringify(result, null, 2);
+ // resultJson.textContent    = JSON.stringify(result, null, 2);
 
   sendEvent("finish", result);
 }
