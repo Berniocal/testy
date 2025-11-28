@@ -196,6 +196,7 @@ let testState = {
   studentName: "",
   startedAt: null,
   finishedAt: null,
+  
   currentIndex: 0,
   answers: {},
   remainingSeconds: 0,
@@ -203,15 +204,6 @@ let testState = {
   finished: false
 };
 
-  if (titleEl) titleEl.textContent = "Online test – chyba";
-  if (mainEl) {
-    mainEl.innerHTML = `
-      <h2>Chyba</h2>
-      <p>${msg}</p>
-    `;
-  } else {
-    alert(msg);
-  }
 
 // inicializace testConfig z načtené konfigurace
 function initTestFromConfig(cfg) {
