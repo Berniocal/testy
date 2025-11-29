@@ -126,6 +126,23 @@
       width:0;height:0;opacity:0;position:absolute;pointer-events:none;
     }
   </style>
+
+  <!-- MathJax konfigurace + skript -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [
+          ['\\(','\\)'],
+          ['$', '$']
+        ]
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
+  <script id="MathJax-script"
+          async
+          src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+  </script>
 </head>
 <body>
 <div class="wrap">
@@ -507,8 +524,10 @@
     const q = qs[index];
     if(!q) return;
 
+    // otázka
     questionText.textContent = `${index+1}. ${q.text}`;
 
+    // odpovědi
     answersEl.innerHTML = "";
     const selected = testState.answers[q.id] || [];
     q.answers.forEach((a,idx)=>{
@@ -531,6 +550,13 @@
     btnPrev.disabled = (index === 0);
     btnNext.textContent = (index === qs.length-1) ? "Ukončit test" : "Další otázka";
     refreshQuestionNavStyles();
+
+    // MathJax přetypování aktuální otázky a odpovědí
+    if (window.MathJax && MathJax.typesetPromise) {
+      MathJax.typesetPromise([questionText, answersEl]).catch(err => {
+        console.error("MathJax error:", err);
+      });
+    }
   }
 
   function saveCurrentAnswers(){
