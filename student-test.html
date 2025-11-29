@@ -14,12 +14,17 @@
     }
     *{box-sizing:border-box}
     html,body{
-      margin:0; padding:0; min-height:100%;
+      margin:0; padding:0;
+      min-height:100%;
       background:linear-gradient(180deg,var(--bg),var(--bg2));
       color:var(--text);
       font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
     }
-    .wrap{max-width:min(1100px,96vw);margin:20px auto;padding:10px}
+    .wrap{
+      max-width:min(900px,96vw);
+      margin:20px auto;
+      padding:10px;
+    }
     h1,h2,h3{margin:0 0 10px}
     .panel{
       background:var(--panel);
@@ -28,6 +33,7 @@
       box-shadow:0 14px 40px rgba(0,0,0,.4);
       margin-bottom:16px;
     }
+    .muted{color:var(--muted);font-size:.9rem}
     label{display:block;margin:6px 0;}
     input[type="text"]{
       width:100%;
@@ -46,66 +52,63 @@
       color:#0b1020;
       font-weight:600;
       cursor:pointer;
-      margin:4px 4px 0 0;
+      margin:6px 6px 0 0;
     }
     button[disabled]{opacity:.55;cursor:not-allowed}
-    .muted{color:var(--muted);font-size:.9rem}
     .topbar{
-      display:flex;justify-content:space-between;align-items:center;
-      margin-bottom:8px;
-      flex-wrap:wrap;gap:8px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:10px;
     }
     .timer{
-      padding:4px 10px;
+      min-width:80px;
+      padding:6px 10px;
       border-radius:999px;
       background:#020617;
-      border:1px solid #1f2937;
-      font-weight:600;
+      text-align:center;
+      font-variant-numeric:tabular-nums;
     }
-    .timer.expiring{background:#3b0764;border-color:#a855f7}
-    .timer.over{background:#3b0a0a;border-color:#b91c1c}
+    .timer.expiring{background:#451a03;color:#fed7aa;}
+    .timer.over{background:#450a0a;color:#fecaca;}
     .nav-row{
-      display:flex;flex-wrap:wrap;gap:4px;
-      margin-bottom:8px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:6px;
+      margin-bottom:10px;
     }
     .badge{
-      display:inline-flex;align-items:center;justify-content:center;
-      min-width:26px;height:26px;
+      min-width:26px;
       padding:0 8px;
       border-radius:999px;
-      font-size:.9rem;
       border:1px solid #1f2937;
       background:#020617;
-      margin:2px;
+      text-align:center;
+      font-size:.8rem;
       cursor:pointer;
-      user-select:none;
     }
-    .badge.answered{background:#022c22;border-color:#16a34a;color:#bbf7d0}
-    .badge.current{outline:2px solid var(--accent);}
-    .badge:hover{background:#02091a}
-    .q-text{font-size:1.05rem;margin-bottom:8px}
+    .badge.current{background:var(--accent);color:#020617;}
+    .badge.answered{border-color:var(--ok);color:var(--ok);}
     .answers label{
-      display:flex;align-items:flex-start;
+      display:flex;
+      align-items:center;
       gap:8px;
       padding:6px 8px;
-      border-radius:10px;
+      border-radius:8px;
       background:#020617;
       margin-bottom:4px;
       cursor:pointer;
     }
-    .answers input{margin-top:3px}
+    .answers input[type="checkbox"]{margin:0;}
     .btn-row{
-      display:flex;justify-content:space-between;
-      margin-top:12px;gap:8px;
+      display:flex;
+      justify-content:space-between;
+      gap:8px;
+      margin-top:10px;
+      flex-wrap:wrap;
     }
-    .btn-secondary{
-      background:#020617;color:var(--text);
-      border:1px solid #1f2937;
-    }
-    @media (max-width:600px){
-      .btn-row{flex-direction:column;}
-      .btn-row button{width:100%}
-    }
+    .btn-row button{flex:1 1 120px;}
     pre{
       background:#020617;
       padding:8px 10px;
@@ -114,6 +117,14 @@
       overflow:auto;
       max-height:240px;
     }
+    @media (max-width:600px){
+      .topbar{flex-direction:column;align-items:flex-start;}
+      .btn-row{flex-direction:column;}
+      .btn-row button{width:100%}
+    }
+    video#keep-awake{
+      width:0;height:0;opacity:0;position:absolute;pointer-events:none;
+    }
   </style>
 </head>
 <body>
@@ -121,7 +132,7 @@
   <h1 id="page-title">Online test</h1>
 
   <div class="panel" id="loading-panel">
-    Načítám test, prosím čekej…
+    Načítám test…
   </div>
 
   <div class="panel" id="error-panel" style="display:none;">
@@ -153,554 +164,546 @@
 
       <div class="nav-row" id="question-nav"></div>
 
-    <div id="question-area">
-
-  <div style="display:flex; justify-content:space-between; align-items:center;">
-    <div class="q-text" id="q-text"></div>
-
-    <!-- pravý badge s body -->
-    <div id="points-badge" class="muted" style="
-      font-weight:600;
-      padding:4px 8px;
-      border-radius:8px;
-      background:#020617;
-      border:1px solid #1f2937;
-      margin-left:12px;
-      white-space:nowrap;
-    ">[1b]</div>
-  </div>
-
-  <div class="answers" id="answers"></div>
-</div>
-
+      <h3 id="question-text"></h3>
+      <div class="answers" id="answers"></div>
 
       <div class="btn-row">
-        <button class="btn-secondary" id="btn-prev" disabled>Předchozí otázka</button>
-        <button id="btn-next">Další otázka</button>
+        <button id="btn-prev">Předchozí</button>
+        <button id="btn-next">Další</button>
+        <button id="btn-finish" class="btn-secondary">Ukončit test</button>
       </div>
-      <div class="muted" style="margin-top:6px;" id="test-hint"></div>
+
+      <div id="test-hint" class="muted" style="margin-top:8px;"></div>
     </div>
 
-    <div id="student-result" style="display:none;margin-top:10px;">
-      <h3>Výsledek testu</h3>
-      <div id="result-summary"></div>
-          </div>
+    <div id="student-result" style="display:none;">
+      <h2>Výsledek testu</h2>
+      <p id="result-summary"></p>
+      <pre id="result-json" style="display:none;"></pre>
+      <div class="muted">
+        Počkej prosím, než učitel potvrdí, že se výsledek uložil.
+      </div>
+    </div>
   </div>
+
+  <!-- neviditelné video kvůli udržení „probuzené“ obrazovky -->
+  <video id="keep-awake" loop muted playsinline>
+    <source src="data:video/mp4;base64,AAAA" type="video/mp4">
+  </video>
 </div>
 
-<!-- fake video proti zamykání obrazovky -->
-<video
-  id="keep-awake-video"
-  muted
-  playsinline
-  loop
-  style="position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;"
->
-  <source src="https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4" type="video/mp4">
-</video>
-
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbx0KKR5tBAxu4OjVpgeKT3XjEXBz7J9IybVpyUyqP8_QNY35NTLWBK2puVU6b9jm2we/exec";
+  const API_URL = "https://script.google.com/macros/s/AKfycbx0KKR5tBAxu4OjVpgeKT3XjEXBz7J9IybVpyUyqP8_QNY35NTLWBK2puVU6b9jm2we/exec";
 
-// globální stav
-let testConfig = null;
-let testState = {
-  studentName: "",
-  startedAt: null,
-  finishedAt: null,
-  
-  currentIndex: 0,
-  answers: {},
-  remainingSeconds: 0,
-  timerInterval: null,
-  finished: false
-};
+  const loadingPanel = document.getElementById('loading-panel');
+  const errorPanel   = document.getElementById('error-panel');
+  const errorText    = document.getElementById('error-text');
+  const studentPanel = document.getElementById('student-panel');
 
+  const studentStartDiv  = document.getElementById('student-start');
+  const studentTestDiv   = document.getElementById('student-test');
+  const studentResultDiv = document.getElementById('student-result');
 
-// === Načtení testId z URL a JSONP z Apps Scriptu ===
-document.addEventListener('DOMContentLoaded', () => {
-  const hash = window.location.hash.slice(1);
+  const testInfo     = document.getElementById('test-info');
+  const questionNav  = document.getElementById('question-nav');
+  const questionText = document.getElementById('question-text');
+  const answersEl    = document.getElementById('answers');
+  const timerEl      = document.getElementById('timer');
+  const testHint     = document.getElementById('test-hint');
 
-  if (!hash) {
+  const btnStartTest = document.getElementById('btn-start-test');
+  const startError   = document.getElementById('start-error');
+  const btnPrev      = document.getElementById('btn-prev');
+  const btnNext      = document.getElementById('btn-next');
+  const btnFinish    = document.getElementById('btn-finish');
+
+  const resultSummary = document.getElementById('result-summary');
+  const resultJson    = document.getElementById('result-json');
+
+  const pageTitleEl = document.getElementById('page-title');
+  const keepAwakeVideo = document.getElementById('keep-awake');
+
+  let testConfig = null;
+  let testState = {
+    studentName: "",
+    startedAt: null,
+    finishedAt: null,
+    finished: false,
+    currentIndex: 0,
+    answers: {},            // {questionId: [indexy odpovědí]}
+    remainingSeconds: 0,
+    timerInterval: null
+  };
+
+  // =====================================================================
+  // Načtení testu z Apps Scriptu (JSONP)
+  // =====================================================================
+  const hash = window.location.hash ? window.location.hash.substring(1) : "";
+  const testId = decodeURIComponent(hash || "").trim();
+
+  if(!testId){
     loadingPanel.style.display = "none";
     errorPanel.style.display   = "block";
-    errorText.textContent =
-      "V URL není uveden kód testu (hash). Zkontroluj, že používáš odkaz ze stránky učitele.";
-    return;
+    errorText.textContent = "V URL chybí ID testu (#TESTID). Požádej učitele o správný odkaz.";
+  }else{
+    loadTestFromServer(testId);
   }
 
-  const testId = decodeURIComponent(hash);
-  pageTitleEl.textContent = "Online test – " + testId;
-  document.title          = "Online test – " + testId;
-
-  // unikátní jméno callbacku pro JSONP
-  const callbackName = "handleTest_" + Date.now();
-  window[callbackName] = function(data) {
-    try {
-      if (!data || data.status !== "ok" || !data.test) {
-        throw new Error(data && data.message ? data.message : "Test nebyl nalezen.");
+  function loadTestFromServer(testId){
+    const cbName = "handleTest_" + Date.now();
+    window[cbName] = function(resp){
+      try{
+        if(!resp || resp.status !== "ok" || !resp.test){
+          throw new Error(resp && resp.message ? resp.message : "Test nenalezen");
+        }
+        initTest(resp.test, testId);
+      }catch(err){
+        console.error(err);
+        loadingPanel.style.display = "none";
+        errorPanel.style.display   = "block";
+        errorText.textContent = "Nepodařilo se načíst test: " + err.message;
+      }finally{
+        delete window[cbName];
       }
-      const t = data.test;
+    };
 
-      let questions = t.questions || [];
-      // body za otázku – pokud chybí, bereme 1 bod
-questions = questions.map(q => ({
-  ...q,
-  points: typeof q.points === "number" && !isNaN(q.points) ? q.points : 1
-}));
-
-// max. počet bodů v testu
-const maxPoints = questions.reduce((sum, q) => sum + (q.points || 1), 0);
-
-      if (!Array.isArray(questions) || !questions.length) {
-        throw new Error("Test neobsahuje žádné otázky.");
-      }
-
-      // zamíchat podle příznaků
-      if (t.shuffleQuestions) {
-        questions = shuffle(questions);
-      }
-if (t.shuffleAnswers) {
-  questions = questions.map(q => ({
-    ...q, // zachová id, text, points, atd.
-    answers: shuffle(q.answers || [])
-  }));
-}
-
-
-      // uložit konfiguraci pro zbytek kódu
-testConfig = {
-  testId: t.testId || testId,
-  questions,
-  maxPoints,
-  timeMode: t.timeMode || null,
-  timeLimitSec: t.timeLimitSec || null,
-  startAt: t.startAt || null,
-  endAt: t.endAt || null
-};
-
-
-      // přepnout UI
-      loadingPanel.style.display = "none";
-      errorPanel.style.display   = "none";
-      studentPanel.style.display = "block";
-
-      let infoText =
-  `Kód testu: ${testConfig.testId}. ` +
-  `Otázek: ${questions.length}. ` +
-  `Maximální počet bodů: ${maxPoints}.`;
-      if (testConfig.timeMode === "limit" && testConfig.timeLimitSec) {
-        infoText += ` Časový limit: ${Math.round(testConfig.timeLimitSec / 60)} minut.`;
-      } else if (testConfig.timeMode === "window" && testConfig.startAt && testConfig.endAt) {
-        infoText += ` Test lze psát mezi ${formatDateTime(testConfig.startAt)} a ${formatDateTime(testConfig.endAt)}.`;
-      } else {
-        infoText += ` Bez pevného časového limitu.`;
-      }
-      testInfo.textContent = infoText;
-
-    } catch (err) {
-      console.error(err);
+    const s = document.createElement("script");
+    const url = API_URL
+      + "?mode=getTest"
+      + "&testId=" + encodeURIComponent(testId)
+      + "&callback=" + encodeURIComponent(cbName);
+    s.src = url;
+    s.onerror = () =>{
       loadingPanel.style.display = "none";
       errorPanel.style.display   = "block";
-      errorText.textContent = "Nepodařilo se načíst test: " + err.message;
-    } finally {
-      try { delete window[callbackName]; } catch(_) {}
-    }
-  };
+      errorText.textContent = "Nepodařilo se načíst test (chyba připojení).";
+    };
+    document.body.appendChild(s);
+  }
 
-  // vytvoříme <script> – JSONP, CORS nás už netrápí
-  const script = document.createElement("script");
-  script.src = API_URL
-    + "?mode=getTest"
-    + "&testId=" + encodeURIComponent(testId)
-    + "&callback=" + encodeURIComponent(callbackName);
-  script.onerror = function() {
+  function initTest(t, requestedId){
+    const qs = Array.isArray(t.questions) ? t.questions.slice() : [];
+    if (!qs.length) {
+      loadingPanel.style.display = "none";
+      errorPanel.style.display   = "block";
+      errorText.textContent = "Test neobsahuje žádné otázky.";
+      return;
+    }
+
+    const shuffleQuestions = !!t.shuffleQuestions;
+    const shuffleAnswers   = !!t.shuffleAnswers;
+
+    let questions = qs.map(q => ({
+      id: q.id || ("Q" + Math.random().toString(36).slice(2)),
+      text: q.text || "",
+      points: Number(q.points) > 0 ? Number(q.points) : 1,
+      answers: (q.answers || []).map(a => ({
+        text: a.text || "",
+        isCorrect: !!a.isCorrect
+      }))
+    })).filter(q => q.text && q.answers.length >= 2);
+
+    if (shuffleQuestions) {
+      questions = shuffle(questions);
+    }
+    if (shuffleAnswers) {
+      questions.forEach(q => {
+        q.answers = shuffle(q.answers);
+      });
+    }
+
+    const maxPoints = questions.reduce((sum,q)=>sum + (Number(q.points)||1),0);
+
+    // uložit konfiguraci pro zbytek kódu
+    testConfig = {
+      testId: t.testId || requestedId,
+      questions,
+      maxPoints,
+
+      // nový model časování
+      timeLimitSec: t.timeLimitSec || null,
+
+      // podpora starého i nového payloadu
+      startWindowFrom: t.startWindowFrom || t.startAt || null,
+      startWindowTo:   t.startWindowTo   || t.endAt   || null
+    };
+
+    // přepnout UI
     loadingPanel.style.display = "none";
-    errorPanel.style.display   = "block";
-    errorText.textContent = "Nepodařilo se načíst test (chyba skriptu).";
-  };
-  document.body.appendChild(script);
-});
+    errorPanel.style.display   = "none";
+    studentPanel.style.display = "block";
 
-const loadingPanel = document.getElementById('loading-panel');
-const errorPanel   = document.getElementById('error-panel');
-const errorText    = document.getElementById('error-text');
-const studentPanel = document.getElementById('student-panel');
-const testInfo     = document.getElementById('test-info');
+    let parts = [
+      `Kód testu: ${testConfig.testId}.`,
+      `Otázek: ${questions.length}.`,
+      `Maximální počet bodů: ${maxPoints}.`
+    ];
 
-const btnStartTest = document.getElementById('btn-start-test');
-const startError   = document.getElementById('start-error');
-const studentStartDiv  = document.getElementById('student-start');
-const studentTestDiv   = document.getElementById('student-test');
-const studentResultDiv = document.getElementById('student-result');
-const timerEl      = document.getElementById('timer');
-const questionNav  = document.getElementById('question-nav');
-const qTextEl      = document.getElementById('q-text');
-const answersEl    = document.getElementById('answers');
-const btnPrev      = document.getElementById('btn-prev');
-const btnNext      = document.getElementById('btn-next');
-const testHint     = document.getElementById('test-hint');
-const resultSummary= document.getElementById('result-summary');
-//const resultJson   = document.getElementById('result-json');
-const keepAwakeVideo = document.getElementById('keep-awake-video');
+    if (testConfig.timeLimitSec) {
+      parts.push(`Čas na vyplnění po spuštění: ${Math.round(testConfig.timeLimitSec / 60)} minut.`);
+    } else {
+      parts.push(`Bez pevného časového limitu.`);
+    }
 
-const pageTitleEl = document.getElementById('page-title');
+    if (testConfig.startWindowFrom || testConfig.startWindowTo) {
+      const fromTxt = testConfig.startWindowFrom ? formatDateTime(testConfig.startWindowFrom) : "nyní";
+      const toTxt   = testConfig.startWindowTo   ? formatDateTime(testConfig.startWindowTo)   : "kdykoliv";
+      parts.push(`Test je možné ZAČÍT mezi ${fromTxt} a ${toTxt}.`);
+    }
 
+    testInfo.textContent = parts.join(" ");
 
-
-
-
-// === Start testu po zadání jména ===
-btnStartTest.addEventListener('click', ()=>{
-  if(!testConfig){
-    startError.textContent = "Test nebyl správně načten. Zkus obnovit stránku.";
-    return;
-  }
-  const name = document.getElementById('student-name').value.trim();
-  if(!name){
-    startError.textContent = "Zadej prosím své jméno nebo kód.";
-    return;
-  }
-  startError.textContent = "";
-  testState.studentName = name;
-  testState.startedAt = new Date().toISOString();
-  testState.finished = false;
-  testState.currentIndex = 0;
-  testState.answers = {};
-  testState.finishedAt = null;
-  if(testState.timerInterval){
-    clearInterval(testState.timerInterval);
-    testState.timerInterval = null;
+    if (pageTitleEl) pageTitleEl.textContent = "Online test – " + testConfig.testId;
+    document.title = "Online test – " + testConfig.testId;
   }
 
-  // přepsat nadpis na jméno žáka
-  if (pageTitleEl) pageTitleEl.textContent = name;
-  const tt = document.getElementById('test-title');
-  if (tt) tt.textContent = name;
-  document.title = name + " – online test";
+  // =====================================================================
+  // Start testu
+  // =====================================================================
+  btnStartTest.addEventListener('click', ()=>{
+    if(!testConfig){
+      startError.textContent = "Test nebyl správně načten. Zkus obnovit stránku.";
+      return;
+    }
 
-  // pustit fake video proti zamykání
-  if (keepAwakeVideo) {
-    keepAwakeVideo.play().catch(err=>{
-      console.log("Autoplay videa zablokován:", err);
-    });
-  }
+    const name = document.getElementById('student-name').value.trim();
+    if(!name){
+      startError.textContent = "Zadej prosím své jméno nebo kód.";
+      return;
+    }
 
-  // kontrola časového okna
-  if(testConfig.timeMode === "window" && testConfig.startAt && testConfig.endAt){
+    // kontrola časového okna pro ZAČÁTEK testu
     const now = new Date();
-    const startAt = new Date(testConfig.startAt);
-    const endAt   = new Date(testConfig.endAt);
-    if(now < startAt){
-      alert("Test ještě nezačal.");
-      return;
-    }
-    if(now > endAt){
-      alert("Test už byl ukončen.");
-      return;
-    }
-  }
-
-  // časový limit
-  if(testConfig.timeMode === "limit" && testConfig.timeLimitSec){
-    testState.remainingSeconds = testConfig.timeLimitSec;
-    timerEl.style.display = "inline-flex";
-    updateTimerDisplay();
-    testState.timerInterval = setInterval(()=>{
-      testState.remainingSeconds--;
-      if(testState.remainingSeconds <= 0){
-        testState.remainingSeconds = 0;
-        updateTimerDisplay(true);
-        clearInterval(testState.timerInterval);
-        testState.timerInterval = null;
-        if(!testState.finished){
-          finishTest("timeup");
-        }
-      }else{
-        updateTimerDisplay();
+    if (testConfig.startWindowFrom) {
+      const from = new Date(testConfig.startWindowFrom);
+      if (now < from) {
+        startError.textContent = "Test ještě není možné začít psát.";
+        return;
       }
-    },1000);
-  }else{
-    timerEl.style.display = "none";
+    }
+    if (testConfig.startWindowTo) {
+      const to = new Date(testConfig.startWindowTo);
+      if (now > to) {
+        startError.textContent = "Čas pro zahájení testu už vypršel.";
+        return;
+      }
+    }
+
+    startError.textContent = "";
+
+    testState.studentName = name;
+    testState.startedAt = now.toISOString();
+    testState.finished = false;
+    testState.currentIndex = 0;
+    testState.answers = {};
+    testState.finishedAt = null;
+    if(testState.timerInterval){
+      clearInterval(testState.timerInterval);
+      testState.timerInterval = null;
+    }
+
+    // přepsat nadpis na jméno žáka
+    if (pageTitleEl) pageTitleEl.textContent = name;
+    const tt = document.getElementById('test-title');
+    if (tt) tt.textContent = name;
+    document.title = name + " – online test";
+
+    // pustit fake video proti zamykání
+    if (keepAwakeVideo) {
+      keepAwakeVideo.play().catch(err=>{
+        console.log("Autoplay videa zablokován:", err);
+      });
+    }
+
+    // časový limit po spuštění
+    if(testConfig.timeLimitSec){
+      testState.remainingSeconds = testConfig.timeLimitSec;
+      timerEl.style.display = "inline-flex";
+      updateTimerDisplay();
+      testState.timerInterval = setInterval(()=>{
+        testState.remainingSeconds--;
+        if(testState.remainingSeconds <= 0){
+          testState.remainingSeconds = 0;
+          updateTimerDisplay(true);
+          clearInterval(testState.timerInterval);
+          testState.timerInterval = null;
+          if(!testState.finished){
+            finishTest("timeup");
+          }
+        }else{
+          updateTimerDisplay();
+        }
+      },1000);
+    }else{
+      timerEl.style.display = "none";
+    }
+
+    document.getElementById('test-subtitle').textContent =
+      testConfig.timeLimitSec
+        ? `Časový limit: ${Math.round(testConfig.timeLimitSec/60)} minut`
+        : `Bez časového omezení.`;
+
+    studentStartDiv.style.display = "none";
+    studentTestDiv.style.display  = "block";
+    studentResultDiv.style.display= "none";
+
+    buildQuestionNav();
+    renderCurrentQuestion();
+    testHint.textContent = "Zelená čísla nahoře označují otázky, u kterých už máš nějakou odpověď.";
+  });;
+
+  function updateTimerDisplay(isOver){
+    const s = testState.remainingSeconds;
+    const m = Math.floor(s/60);
+    const sec = s % 60;
+    timerEl.textContent = `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+    timerEl.classList.remove("expiring","over");
+    if(isOver){
+      timerEl.classList.add("over");
+    }else if(s <= 60){
+      timerEl.classList.add("expiring");
+    }
   }
 
-  document.getElementById('test-subtitle').textContent =
-    testConfig.timeMode === "limit" && testConfig.timeLimitSec
-    ? `Časový limit: ${Math.round(testConfig.timeLimitSec/60)} minut`
-    : `Bez časového omezení.`;
-
-  studentStartDiv.style.display = "none";
-  studentTestDiv.style.display  = "block";
-  studentResultDiv.style.display= "none";
-
-  buildQuestionNav();
-  renderCurrentQuestion();
-  testHint.textContent = "Zelená čísla nahoře označují otázky, u kterých už máš nějakou odpověď.";
-});
-
-function updateTimerDisplay(isOver){
-  const s = testState.remainingSeconds;
-  const m = Math.floor(s/60);
-  const sec = s % 60;
-  timerEl.textContent = `${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
-  timerEl.classList.remove("expiring","over");
-  if(isOver){
-    timerEl.classList.add("over");
-  }else if(s <= 60){
-    timerEl.classList.add("expiring");
+  // =====================================================================
+  // Navigace mezi otázkami
+  // =====================================================================
+  function buildQuestionNav(){
+    questionNav.innerHTML = "";
+    const qs = testConfig.questions;
+    for(let i=0;i<qs.length;i++){
+      const badge = document.createElement("div");
+      badge.className = "badge";
+      badge.dataset.index = i;
+      badge.textContent = (i+1);
+      badge.addEventListener('click', ()=>{
+        saveCurrentAnswers();
+        testState.currentIndex = i;
+        renderCurrentQuestion();
+      });
+      questionNav.appendChild(badge);
+    }
+    refreshQuestionNavStyles();
   }
-}
 
-// === Navigace mezi otázkami ===
-function buildQuestionNav(){
-  questionNav.innerHTML = "";
-  const qs = testConfig.questions;
-  for(let i=0;i<qs.length;i++){
-    const badge = document.createElement("div");
-    badge.className = "badge";
-    badge.dataset.index = i;
-    badge.textContent = (i+1);
-    badge.addEventListener('click', ()=>{
-      if(testState.finished) return;
-      saveCurrentAnswers();
-      testState.currentIndex = i;
+  function refreshQuestionNavStyles(){
+    const qs = testConfig.questions;
+    const badges = questionNav.querySelectorAll(".badge");
+    badges.forEach((b,idx)=>{
+      b.classList.remove("current","answered");
+      if(idx === testState.currentIndex){
+        b.classList.add("current");
+      }
+      const q = qs[idx];
+      if(q && Array.isArray(testState.answers[q.id]) && testState.answers[q.id].length>0){
+        b.classList.add("answered");
+      }
+    });
+  }
+
+  function renderCurrentQuestion(){
+    const qs = testConfig.questions;
+    const index = testState.currentIndex;
+    const q = qs[index];
+    if(!q) return;
+
+    questionText.textContent = `${index+1}. ${q.text}`;
+
+    answersEl.innerHTML = "";
+    const selected = testState.answers[q.id] || [];
+    q.answers.forEach((a,idx)=>{
+      const label = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.value = idx;
+      input.checked = selected.includes(idx);
+      input.addEventListener('change', ()=>{
+        saveCurrentAnswers();
+        refreshQuestionNavStyles();
+      });
+      const span = document.createElement("span");
+      span.textContent = a.text;
+      label.appendChild(input);
+      label.appendChild(span);
+      answersEl.appendChild(label);
+    });
+
+    btnPrev.disabled = (index === 0);
+    btnNext.textContent = (index === qs.length-1) ? "Ukončit test" : "Další otázka";
+    refreshQuestionNavStyles();
+  }
+
+  function saveCurrentAnswers(){
+    const qs = testConfig.questions;
+    const index = testState.currentIndex;
+    const q = qs[index];
+    if(!q) return;
+    const checkboxes = answersEl.querySelectorAll("input[type='checkbox']");
+    const selected = [];
+    checkboxes.forEach((cb,idx)=>{
+      if(cb.checked) selected.push(idx);
+    });
+    testState.answers[q.id] = selected;
+  }
+
+  btnPrev.addEventListener('click', ()=>{
+    saveCurrentAnswers();
+    if(testState.currentIndex > 0){
+      testState.currentIndex--;
       renderCurrentQuestion();
-    });
-    questionNav.appendChild(badge);
-  }
-  refreshQuestionNavStyles();
-}
-
-function refreshQuestionNavStyles(){
-  const badges = questionNav.querySelectorAll(".badge");
-  const qs = testConfig.questions;
-  badges.forEach(b=>{
-    b.classList.remove("answered","current");
-    const idx = parseInt(b.dataset.index,10);
-    const q = qs[idx];
-    const ans = testState.answers[q.id];
-    if(ans && ans.length>0){
-      b.classList.add("answered");
-    }
-    if(idx === testState.currentIndex){
-      b.classList.add("current");
     }
   });
-}
 
-function renderCurrentQuestion(){
-  const qs = testConfig.questions;
-  const index = testState.currentIndex;
-  const q = qs[index];
-  if(!q) return;
-
-  // --- počet bodů pro tuto otázku ---
-  const pts = q.points || 1;
-  const ptsBadge = document.getElementById("points-badge");
-  if (ptsBadge) {
-    ptsBadge.textContent = `[${pts}b]`;
-  }
-
-  // číslo otázky + text
-  qTextEl.textContent = `${index+1}) ${q.text}`;
-  answersEl.innerHTML = "";
-
-  const selected = testState.answers[q.id] || [];
-
-  q.answers.forEach((a,idx)=>{
-    const id = `ans-${index}-${idx}`;
-    const label = document.createElement("label");
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.id = id;
-    input.checked = selected.includes(idx);
-    input.addEventListener('change', ()=>{
-      saveCurrentAnswers();
-      refreshQuestionNavStyles();
-    });
-    const span = document.createElement("span");
-    span.textContent = a.text;
-    label.appendChild(input);
-    label.appendChild(span);
-    answersEl.appendChild(label);
+  btnNext.addEventListener('click', ()=>{
+    saveCurrentAnswers();
+    const qs = testConfig.questions;
+    if(testState.currentIndex < qs.length-1){
+      testState.currentIndex++;
+      renderCurrentQuestion();
+    }else{
+      if(confirm("Opravdu chceš test ukončit?")){
+        finishTest("manual");
+      }
+    }
   });
 
-  btnPrev.disabled = (index === 0);
-  btnNext.textContent = (index === qs.length-1) ? "Ukončit test" : "Další otázka";
-  refreshQuestionNavStyles();
-}
-
-
-function saveCurrentAnswers(){
-  const qs = testConfig.questions;
-  const index = testState.currentIndex;
-  const q = qs[index];
-  if(!q) return;
-  const checkboxes = answersEl.querySelectorAll("input[type='checkbox']");
-  const selected = [];
-  checkboxes.forEach((cb,idx)=>{
-    if(cb.checked) selected.push(idx);
-  });
-  testState.answers[q.id] = selected;
-}
-
-btnPrev.addEventListener('click', ()=>{
-  if(testState.currentIndex > 0){
+  btnFinish.addEventListener('click', ()=>{
     saveCurrentAnswers();
-    testState.currentIndex--;
-    renderCurrentQuestion();
-  }
-});
-
-btnNext.addEventListener('click', ()=>{
-  const qs = testConfig.questions;
-  const index = testState.currentIndex;
-  if(index < qs.length-1){
-    saveCurrentAnswers();
-    testState.currentIndex++;
-    renderCurrentQuestion();
-  }else{
-    const ok = confirm("Opravdu chceš test ukončit? Po odeslání už nebude možné odpovědi měnit.");
-    if(ok){
-      saveCurrentAnswers();
+    if(confirm("Opravdu chceš test ukončit?")){
       finishTest("manual");
     }
-  }
-});
-
-// === Ukončení testu a odeslání výsledků ===
-function finishTest(reason){
-  if(testState.finished) return;
-  testState.finished = true;
-  testState.finishedAt = new Date().toISOString();
-  if(testState.timerInterval){
-    clearInterval(testState.timerInterval);
-    testState.timerInterval = null;
-  }
-
-  // zastavit fake video
-  if (keepAwakeVideo) {
-    keepAwakeVideo.pause();
-    keepAwakeVideo.currentTime = 0;
-  }
-
-  const qs = testConfig.questions;
- let totalPoints = 0;
-let maxPoints = 0;
-const details = [];
-
-qs.forEach((q,idx)=>{
-  const answersTexts = q.answers.map(a=>a.text);
-  const correctIdxs = q.answers
-    .map((a,i)=>a.isCorrect ? i : -1)
-    .filter(i=>i>=0);
-  const selectedIdxs = testState.answers[q.id] || [];
-
-  const isCorrect =
-    correctIdxs.length === selectedIdxs.length &&
-    correctIdxs.every(i=>selectedIdxs.includes(i));
-
-  const qPoints = q.points || 1;
-  maxPoints += qPoints;
-  if(isCorrect) totalPoints += qPoints;
-
-  const correctTexts  = correctIdxs.map(i=>answersTexts[i]);
-  const selectedTexts = selectedIdxs.map(i=>answersTexts[i]);
-
-  details.push({
-    questionIndex: idx+1,
-    questionId: q.id,
-    questionText: q.text,
-    answersTexts: answersTexts,
-    correctAnswerIndices: correctIdxs,
-    selectedAnswerIndices: selectedIdxs,
-    correctAnswersTexts: correctTexts,
-    selectedAnswersTexts: selectedTexts,
-    isCorrect,
-    questionPoints: qPoints,
-    awardedPoints: isCorrect ? qPoints : 0
   });
-});
 
-const result = {
-  studentName: testState.studentName,
-  testId: testConfig.testId,
-  startedAt: testState.startedAt,
-  finishedAt: testState.finishedAt,
-  reason,
-  totalPoints,
-  maxPoints,
-  answers: details
-};
+  // =====================================================================
+  // Vyhodnocení testu
+  // =====================================================================
+  function finishTest(reason){
+    if(testState.finished) return;
+    testState.finished = true;
+    testState.finishedAt = new Date().toISOString();
+    if(testState.timerInterval){
+      clearInterval(testState.timerInterval);
+      testState.timerInterval = null;
+    }
 
-studentTestDiv.style.display  = "none";
-studentResultDiv.style.display= "block";
-resultSummary.textContent = `Získal/a jsi ${totalPoints} z ${maxPoints} bodů.`;
+    // zastavit fake video
+    if (keepAwakeVideo) {
+      keepAwakeVideo.pause();
+      keepAwakeVideo.currentTime = 0;
+    }
 
- // resultJson.textContent    = JSON.stringify(result, null, 2);
+    const qs = testConfig.questions;
+    let totalPoints = 0;
+    const maxPoints = testConfig.maxPoints;
+    const details = [];
 
-  sendEvent("finish", result);
-}
+    qs.forEach((q,idx)=>{
+      const answersTexts = q.answers.map(a=>a.text);
+      const correctIdxs  = q.answers
+        .map((a,i)=>a.isCorrect ? i : -1)
+        .filter(i=>i>=0);
+      const selectedIdxs = Array.isArray(testState.answers[q.id])
+        ? testState.answers[q.id].slice()
+        : [];
 
-// opuštění okna
-document.addEventListener('visibilitychange', ()=>{
-  if(testState.startedAt && !testState.finished && document.hidden){
-    sendEvent("leave", { reason:"visibility-hidden", time:new Date().toISOString() });
-    alert("Test byl ukončen, protože jsi opustil okno testu.");
-    finishTest("left-window");
-  }
-});
-window.addEventListener('blur', ()=>{
-  if(testState.startedAt && !testState.finished){
-    sendEvent("leave", { reason:"blur", time:new Date().toISOString() });
-    alert("Test byl ukončen, protože jsi přešel do jiného okna.");
-    finishTest("left-window");
-  }
-});
+      // porovnání množin (nezáleží na pořadí)
+      const sortNum = arr => arr.slice().sort((a,b)=>a-b);
+      const isCorrect =
+        sortNum(correctIdxs).join(",") === sortNum(selectedIdxs).join(",");
 
-// odeslání na Apps Script
-function sendEvent(eventType, payload){
-  if(!API_URL) return;
-  const body = Object.assign({}, payload, {
-    eventType,
-    testId: testConfig ? testConfig.testId : "",
-    studentName: testState.studentName || ""
-  });
-  try{
-    fetch(API_URL, {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify(body)
-    }).catch(err=>{
-      console.error("Chyba při odesílání na server:", err);
+      const qPoints = Number(q.points) > 0 ? Number(q.points) : 1;
+      if(isCorrect) totalPoints += qPoints;
+
+      const correctTexts  = correctIdxs.map(i=>answersTexts[i]);
+      const selectedTexts = selectedIdxs.map(i=>answersTexts[i]);
+
+      details.push({
+        questionIndex: idx+1,
+        questionText: q.text,
+        isCorrect: isCorrect,
+        correctAnswersTexts: correctTexts,
+        selectedAnswersTexts: selectedTexts
+      });
     });
-  }catch(e){
-    console.error(e);
-  }
-}
 
-// pomocné funkce
-function shuffle(arr){
-  const a = (arr || []).slice();
-  for(let i=a.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i],a[j]] = [a[j],a[i]];
+    const result = {
+      testId: testConfig.testId,
+      studentName: testState.studentName,
+      startedAt: testState.startedAt,
+      finishedAt: testState.finishedAt,
+      reason: reason || "",
+      totalPoints,
+      maxPoints,
+      answers: details
+    };
+
+    studentTestDiv.style.display  = "none";
+    studentResultDiv.style.display= "block";
+    resultSummary.textContent = `Získal/a jsi ${totalPoints} z ${maxPoints} bodů.`;
+
+    // pokud chceš někdy debugovat:
+    // resultJson.style.display = "block";
+    // resultJson.textContent   = JSON.stringify(result, null, 2);
+
+    sendEvent("finish", result);
   }
-  return a;
-}
-function formatDateTime(iso){
-  const d = new Date(iso);
-  if(isNaN(d.getTime())) return iso;
-  const pad = n => String(n).padStart(2,"0");
-  return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+
+  // =====================================================================
+  // Odesílání událostí na Apps Script
+  // =====================================================================
+  function sendEvent(eventType, payload){
+    if(!API_URL) return;
+    const body = Object.assign({}, payload, {
+      eventType,
+      testId: testConfig ? testConfig.testId : "",
+      studentName: testState.studentName || ""
+    });
+    try{
+      fetch(API_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(body)
+      }).catch(err=>{
+        console.error("Chyba při odesílání na server:", err);
+      });
+    }catch(e){
+      console.error("Výjimka při odesílání na server:", e);
+    }
+  }
+
+  // odchod z tab / minimalizace
+  document.addEventListener('visibilitychange', ()=>{
+    if(testState.startedAt && !testState.finished && document.hidden){
+      sendEvent("visibilityHidden", {
+        time: new Date().toISOString()
+      });
+    }
+  });
+
+  // =====================================================================
+  // Pomocné funkce
+  // =====================================================================
+  function shuffle(arr){
+    const a = (arr || []).slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]] = [a[j],a[i]];
+    }
+    return a;
+  }
+
+  function formatDateTime(iso){
+    const d = new Date(iso);
+    if(isNaN(d.getTime())) return iso;
+    const pad = n => String(n).padStart(2,"0");
+    return `${pad(d.getDate())}.${pad(d.getMonth()+1)}.${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
 
   function formatPoints(p){
-  if (p === 1) return "1 bod";
-  if (p >= 2 && p <= 4) return `${p} body`;
-  return `${p} bodů`;
-}
-
+    if (p === 1) return "1 bod";
+    if (p >= 2 && p <= 4) return `${p} body`;
+    return `${p} bodů`;
+  }
 </script>
 </body>
 </html>
