@@ -106,22 +106,18 @@
       justify-content:space-between;
       gap:8px;
       margin-top:10px;
-      flex-wrap:wrap;
+      flex-wrap:nowrap;          /* tlačítka v jednom řádku */
     }
-    .btn-row button{flex:1 1 120px;}
-    pre{
-      background:#020617;
-      padding:8px 10px;
-      border-radius:8px;
-      font-size:.8rem;
-      overflow:auto;
-      max-height:240px;
+    .btn-row button{
+      flex:0 0 auto;             /* už se neroztahují přes celou šířku */
+      padding:8px 16px;
+      min-width:120px;
     }
     @media (max-width:600px){
       .topbar{flex-direction:column;align-items:flex-start;}
-      .btn-row{flex-direction:column;}
-      .btn-row button{width:100%}
+      /* tlačítka necháváme vodorovně i na mobilu */
     }
+
     video#keep-awake{
       width:0;height:0;opacity:0;position:absolute;pointer-events:none;
     }
@@ -184,11 +180,14 @@
       <h3 id="question-text"></h3>
       <div class="answers" id="answers"></div>
 
-      <div class="btn-row">
-        <button id="btn-prev">Předchozí</button>
-        <button id="btn-next">Další</button>
-        <button id="btn-finish" class="btn-secondary">Ukončit test</button>
-      </div>
+<div class="btn-row">
+  <button id="btn-prev">Předchozí</button>
+  <button id="btn-next">Další otázka</button>
+</div>
+<button id="btn-finish" class="btn-secondary" style="display:none;margin-top:8px;">
+  Ukončit test
+</button>
+
 
       <div id="test-hint" class="muted" style="margin-top:8px;"></div>
     </div>
@@ -548,8 +547,18 @@
     });
 
     btnPrev.disabled = (index === 0);
-    btnNext.textContent = (index === qs.length-1) ? "Ukončit test" : "Další otázka";
+    btnNext.disabled = (index === qs.length - 1);   // na poslední otázce "Další" nefunguje
+    btnNext.textContent = "Další otázka";
+
+    // tlačítko Ukončit test jen u poslední otázky
+    if (index === qs.length - 1) {
+      btnFinish.style.display = "inline-block";
+    } else {
+      btnFinish.style.display = "none";
+    }
+
     refreshQuestionNavStyles();
+
 
     // MathJax přetypování aktuální otázky a odpovědí
     if (window.MathJax && MathJax.typesetPromise) {
@@ -583,15 +592,14 @@
   btnNext.addEventListener('click', ()=>{
     saveCurrentAnswers();
     const qs = testConfig.questions;
-    if(testState.currentIndex < qs.length-1){
+    if (testState.currentIndex < qs.length - 1) {
       testState.currentIndex++;
       renderCurrentQuestion();
-    }else{
-      if(confirm("Opravdu chceš test ukončit?")){
-        finishTest("manual");
-      }
     }
+    // na poslední otázce je tlačítko Další zakázané (disabled),
+    // takže se sem už nedostaneme
   });
+
 
   btnFinish.addEventListener('click', ()=>{
     saveCurrentAnswers();
