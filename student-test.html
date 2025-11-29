@@ -119,8 +119,15 @@
     }
 
     video#keep-awake{
-      width:0;height:0;opacity:0;position:absolute;pointer-events:none;
+      width:1px;
+      height:1px;
+      opacity:0;
+      position:fixed;
+      bottom:0;
+      right:0;
+      pointer-events:none;
     }
+
   </style>
 
   <!-- MathJax konfigurace + skript -->
@@ -250,6 +257,43 @@
     remainingSeconds: 0,
     timerInterval: null
   };
+  let wakeLock = null;
+
+  async function requestWakeLock(){
+    try{
+      if ('wakeLock' in navigator){
+        // Screen Wake Lock API – udrží displej zapnutý
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => {
+          console.log('Wake Lock uvolněn');
+        });
+      } else if (keepAwakeVideo){
+        // fallback: pokus o přehrání videa
+        keepAwakeVideo.play().catch(err => {
+          console.log('Video keep-awake error', err);
+        });
+      }
+    } catch (err){
+      console.log('Wake Lock error', err);
+      // když něco selže, zkusíme aspoň video
+      if (keepAwakeVideo){
+        keepAwakeVideo.play().catch(e => {
+          console.log('Video keep-awake error', e);
+        });
+      }
+    }
+  }
+
+  function releaseWakeLock(){
+    if (wakeLock){
+      wakeLock.release().catch(()=>{});
+      wakeLock = null;
+    }
+    if (keepAwakeVideo){
+      keepAwakeVideo.pause();
+      keepAwakeVideo.currentTime = 0;
+    }
+  }
 
   // =====================================================================
   // Načtení testu z Apps Scriptu (JSONP)
@@ -425,11 +469,9 @@
     document.title = name + " – online test";
 
     // pustit fake video proti zamykání
-    if (keepAwakeVideo) {
-      keepAwakeVideo.play().catch(err=>{
-        console.log("Autoplay videa zablokován:", err);
-      });
-    }
+    // požádat o wake lock (nebo fallback video)
+    requestWakeLock();
+
 
     // časový limit po spuštění
     if(testConfig.timeLimitSec){
@@ -621,10 +663,9 @@
     }
 
     // zastavit fake video
-    if (keepAwakeVideo) {
-      keepAwakeVideo.pause();
-      keepAwakeVideo.currentTime = 0;
-    }
+    // uvolnit wake lock / video
+    releaseWakeLock();
+
 
     const qs = testConfig.questions;
     let totalPoints = 0;
