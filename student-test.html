@@ -467,7 +467,7 @@
     buildQuestionNav();
     renderCurrentQuestion();
     testHint.textContent = "Zelená čísla nahoře označují otázky, u kterých už máš nějakou odpověď.";
-  });;
+  });
 
   function updateTimerDisplay(isOver){
     const s = testState.remainingSeconds;
@@ -524,10 +524,10 @@
     const q = qs[index];
     if(!q) return;
 
-    // otázka
-    questionText.textContent = `${index+1}. ${q.text}`;
+    // otázka – jako HTML kvůli MathJaxu
+    questionText.innerHTML = `${index+1}. ${q.text}`;
 
-    // odpovědi
+    // odpovědi – také jako HTML
     answersEl.innerHTML = "";
     const selected = testState.answers[q.id] || [];
     q.answers.forEach((a,idx)=>{
@@ -541,7 +541,7 @@
         refreshQuestionNavStyles();
       });
       const span = document.createElement("span");
-      span.textContent = a.text;
+      span.innerHTML = a.text;
       label.appendChild(input);
       label.appendChild(span);
       answersEl.appendChild(label);
@@ -697,12 +697,13 @@
     }
   }
 
-  // odchod z tab / minimalizace
+  // odchod z tab / minimalizace – test se ukončí
   document.addEventListener('visibilitychange', ()=>{
     if(testState.startedAt && !testState.finished && document.hidden){
-      sendEvent("visibilityHidden", {
-        time: new Date().toISOString()
-      });
+      // volitelně zalogujeme, že odešel
+      sendEvent("visibilityHidden", { time: new Date().toISOString() });
+      // a hned ukončíme test
+      finishTest("switchTab");
     }
   });
 
